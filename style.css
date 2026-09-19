@@ -1,0 +1,593 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ==============================
+   VARIABLES
+================================= */
+
+:root {
+    --accent: #f97316;
+    --accent-dark: #ea580c;
+    --accent-light: #fff7ed;
+
+    --background: #f5f5f5;
+    --surface: #ffffff;
+    --surface-hover: #fafafa;
+
+    --text: #111827;
+    --text-secondary: #6b7280;
+    --text-light: #9ca3af;
+
+    --border: #e5e7eb;
+
+    --sidebar-width: 250px;
+
+    --radius: 12px;
+    --radius-small: 8px;
+
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 5px 18px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ==============================
+   MODO OSCURO
+================================= */
+
+body.dark {
+    --accent: #3b82f6;
+    --accent-dark: #2563eb;
+    --accent-light: #172554;
+
+    --background: #111827;
+    --surface: #1f2937;
+    --surface-hover: #263244;
+
+    --text: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-light: #6b7280;
+
+    --border: #374151;
+
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 5px 18px rgba(0, 0, 0, 0.3);
+}
+
+
+/* ==============================
+   RESET
+================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--background);
+    color: var(--text);
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+button {
+    font-family: inherit;
+}
+
+
+/* ==============================
+   ESTRUCTURA PRINCIPAL
+================================= */
+
+.app {
+    min-height: 100vh;
+    display: flex;
+}
+
+
+/* ==============================
+   BARRA LATERAL
+================================= */
+
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+
+    padding: 30px 18px;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+/* LOGO */
+
+.brand {
+    padding: 0 12px;
+    margin-bottom: 45px;
+
+    display: flex;
+    flex-direction: column;
+
+    line-height: 1;
+}
+
+.brand span {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+
+    color: var(--text);
+}
+
+.brand strong {
+    margin-top: 5px;
+
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+
+    color: var(--accent);
+}
+
+
+/* MENÚ */
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.menu-item {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    padding: 12px 13px;
+
+    border: none;
+    border-radius: var(--radius-small);
+
+    background: transparent;
+
+    color: var(--text-secondary);
+
+    font-size: 14px;
+    font-weight: 500;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.menu-item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.menu-item.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.icon {
+    width: 22px;
+
+    display: flex;
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+
+/* PARTE INFERIOR */
+
+.sidebar-bottom {
+    margin-top: auto;
+}
+
+.theme-button {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    padding: 12px 13px;
+
+    border: none;
+    border-radius: var(--radius-small);
+
+    background: transparent;
+
+    color: var(--text-secondary);
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.theme-button:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+
+/* ==============================
+   CONTENIDO
+================================= */
+
+.main-content {
+    width: calc(100% - var(--sidebar-width));
+
+    margin-left: var(--sidebar-width);
+
+    padding: 45px 55px 70px;
+
+    max-width: 1600px;
+}
+
+
+/* ==============================
+   CABECERA
+================================= */
+
+.topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    margin-bottom: 45px;
+}
+
+.eyebrow {
+    margin-bottom: 7px;
+
+    color: var(--accent);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+}
+
+.topbar h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+
+/* ==============================
+   SELECTOR DE FECHA
+================================= */
+
+.date-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.date-selector button {
+    width: 34px;
+    height: 34px;
+
+    border: 1px solid var(--border);
+    border-radius: 50%;
+
+    background: var(--surface);
+
+    color: var(--text);
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.date-selector button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.date-selector span {
+    min-width: 110px;
+
+    text-align: center;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+}
+
+
+/* ==============================
+   SECCIONES DE DEPORTE
+================================= */
+
+.sport-section {
+    margin-bottom: 45px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 17px;
+}
+
+.section-title span {
+    font-size: 21px;
+}
+
+.section-title h2 {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+
+/* ==============================
+   GRILLA
+================================= */
+
+.events-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(330px, 1fr));
+
+    gap: 15px;
+}
+
+
+/* ==============================
+   TARJETAS DE EVENTOS
+================================= */
+
+.event-card {
+    padding: 20px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.2s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+
+/* CABECERA DE TARJETA */
+
+.event-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 22px;
+}
+
+.status {
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.6px;
+}
+
+.status.finished {
+    color: var(--text-secondary);
+}
+
+.status.upcoming {
+    color: var(--accent);
+}
+
+.status.live {
+    color: #ef4444;
+}
+
+.event-time {
+    color: var(--text-secondary);
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+/* ==============================
+   EQUIPOS
+================================= */
+
+.teams {
+    display: grid;
+
+    grid-template-columns: 1fr auto 1fr;
+
+    align-items: center;
+
+    gap: 14px;
+}
+
+.team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 8px;
+
+    text-align: center;
+}
+
+.flag {
+    font-size: 28px;
+}
+
+.team strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.score span {
+    color: var(--text-light);
+}
+
+
+/* ==============================
+   PIE DE TARJETA
+================================= */
+
+.event-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-top: 20px;
+    padding-top: 13px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-secondary);
+
+    font-size: 10px;
+}
+
+
+/* ==============================
+   EVENTOS INDIVIDUALES
+================================= */
+
+.individual-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    padding: 10px 0 20px;
+}
+
+.individual-info strong {
+    font-size: 17px;
+}
+
+.individual-info span {
+    color: var(--text-secondary);
+
+    font-size: 12px;
+}
+
+
+/* ==============================
+   RESPONSIVE BÁSICO
+================================= */
+
+@media (max-width: 900px) {
+
+    :root {
+        --sidebar-width: 210px;
+    }
+
+    .main-content {
+        padding: 35px 30px 60px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+}
+
+@media (max-width: 650px) {
+
+    .sidebar {
+        width: 70px;
+        padding: 25px 10px;
+    }
+
+    .brand span,
+    .brand strong,
+    .menu-item span:not(.icon),
+    .theme-button span:not(#themeIcon) {
+        display: none;
+    }
+
+    .brand {
+        align-items: center;
+        padding: 0;
+    }
+
+    .menu-item,
+    .theme-button {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .main-content {
+        width: calc(100% - 70px);
+        margin-left: 70px;
+
+        padding: 30px 18px 50px;
+    }
+
+    .topbar h1 {
+        font-size: 26px;
+    }
+
+    .events-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
