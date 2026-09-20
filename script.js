@@ -458,6 +458,424 @@ async function cargarTodasLasUnidades() {
 
     return unidadesPorDisciplina;
 }
+
+// ========================================
+// FÚTBOL — RESULTADOS COMPLETOS
+// ========================================
+
+async function obtenerResultado(disc, resCode) {
+    const url =
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/results/${resCode}`;
+
+    console.log("RESULTADO:", url);
+
+    return await obtenerDatos(url);
+}
+
+
+function normalizarEstadisticasFutbol(competitor) {
+    const s = competitor.Stats || {};
+
+    const numero = clave => {
+        const valor = s[clave];
+
+        if (valor === "" || valor == null) {
+            return 0;
+        }
+
+        return Number(valor);
+    };
+
+    return {
+        equipo: competitor.Name,
+        pais: competitor.Org,
+
+        remates: numero("ST_SHOTS"),
+        rematesAlArco: numero("ST_SHOTS_ON_GOAL"),
+        porcentajeRematesAlArco:
+            numero("ST_SOG_PERCENT"),
+
+        goles: numero("ST_GOALS"),
+        corners: numero("CORNERS"),
+
+        faltas: numero("FOULS"),
+        faltasCometidas:
+            numero("FOULS_COMMITED"),
+        faltasRecibidas:
+            numero("FOULS_SUFFERED"),
+
+        atajadas: numero("SAVED"),
+
+        posesion:
+            numero("ST_POSSESSION_PERCENT"),
+
+        offsides:
+            numero("ST_OFFSIDES"),
+
+        tirosLibres:
+            numero("ST_FREEKICK_SHOTS"),
+
+        asistencias:
+            numero("ST_ASSIST"),
+
+        bloqueos:
+            numero("ST_BLOCKED"),
+
+        amarillas:
+            numero("ST_TOTAL_YC"),
+
+        rojas:
+            numero("ST_TOTAL_RC"),
+
+        golesPenal:
+            numero("ST_PENALTY_GOALS"),
+
+        penalesEjecutados:
+            numero("ST_PENALTY_SHOTS"),
+
+        autogoles:
+            numero("ST_OWN_GOALS")
+    };
+}
+
+
+function obtenerGoleadoresFutbol(resultado) {
+    return (resultado.Results?.Extensions || [])
+        .filter(e => e.Code === "GOAL_SCORERS")
+        .flatMap(e =>
+            (e.Value || "")
+                .split("|")
+                .filter(Boolean)
+                .map(gol => ({
+                    equipo:
+                        e.Pos === 1
+                            ? resultado.Competitors[0].Name
+                            : resultado.Competitors[1].Name,
+
+                    jugador: gol
+                }))
+        );
+}
+
+
+function obtenerJugadoresFutbol(resultado) {
+
+    function extension(jugador, codigo) {
+        return jugador.Extensions?.find(
+            e => e.Code === codigo
+        )?.Value || "";
+    }
+
+    return resultado.Competitors.flatMap(equipo =>
+        equipo.Members.map(jugador => {
+
+            const s = jugador.Stats || {};
+
+            const numero = clave => {
+                const valor = s[clave];
+
+                if (valor === "" || valor == null) {
+                    return 0;
+                }
+
+                return Number(valor);
+            };
+
+            const segundos =
+                Number(s.ST_TIME_PLAYED || 0);
+
+            return {
+                equipo: equipo.Name,
+                pais: equipo.Org,
+
+                nombre: jugador.Name,
+                camiseta: jugador.Bib,
+                posicion:
+                    jugador.PosDesc ||
+                    jugador.Position,
+
+                titular:
+                    !jugador.Substitute,
+
+                enCampo:
+                    jugador.InField,
+
+                club:
+                    extension(jugador, "Club"),
+
+                fechaNacimiento:
+                    extension(
+                        jugador,
+                        "DateOfBirth"
+                    ),
+
+                altura:
+                    extension(
+                        jugador,
+                        "Height"
+                    ),
+
+                nombreCamiseta:
+                    extension(
+                        jugador,
+                        "ShirtName"
+                    ),
+
+                goles:
+                    numero("ST_GOALS"),
+
+                asistencias:
+                    numero("ST_ASSIST"),
+
+                remates:
+                    numero("ST_SHOTS"),
+
+                rematesAlArco:
+                    numero("ST_SHOTS_ON_GOAL"),
+
+                faltas:
+                    numero("FOULS"),
+
+                faltasRecibidas:
+                    numero("FOULS_SUFFERED"),
+
+                amarillas:
+                    numero("ST_TOTAL_YC"),
+
+                rojas:
+                    numero("ST_TOTAL_RC"),
+
+                atajadas:
+                    numero("SAVED"),
+
+                tiempoJugadoSegundos:
+                    segundos,
+
+                tiempoJugadoMinutos:
+                    Math.floor(segundos / 60)
+            };
+        })
+    );
+}
+
+
+function obtenerSustitucionesFutbol(resultado) {
+
+    const extension =
+        resultado.Results?.Extensions?.find(
+            e =>
+                e.Code ===
+                "SUBSTITUTIONS_BY_WINDOW"
+        );
+
+    if (!extension?.Extensions) {
+        return [];
+    }
+
+    const jugadores =
+        resultado.Competitors.flatMap(
+            equipo =>
+                equipo.Members.map(jugador => ({
+                    ...jugador,
+                    equipo: equipo.Name,
+                    pais: equipo.Org
+                }))
+        );
+
+    const buscarJugador = id =>
+        jugadores.find(
+            jugador => jugador.Reg === id
+        );
+
+    const sustituciones = [];
+
+    for (const ventana of extension.Extensions) {
+
+        const datos = {};
+
+        for (
+            const campo of
+            ventana.Extensions || []
+        ) {
+            datos[campo.Code] = campo.Value;
+        }
+
+        const entradas =
+            datos.BIB_IN?.split("|") || [];
+
+        const salidas =
+            datos.BIB_OUT?.split("|") || [];
+
+        const jugadoresIn =
+            datos.PLAYER_IN?.split("|") || [];
+
+        const jugadoresOut =
+            datos.PLAYER_OUT?.split("|") || [];
+
+        const equipos =
+            datos.TEAM?.split("|") || [];
+
+        const tiempos =
+            datos.TIME?.split("|") || [];
+
+        for (
+            let i = 0;
+            i < entradas.length;
+            i++
+        ) {
+
+            const jugadorEntra =
+                buscarJugador(
+                    jugadoresIn[i]
+                );
+
+            const jugadorSale =
+                buscarJugador(
+                    jugadoresOut[i]
+                );
+
+            sustituciones.push({
+                equipo:
+                    jugadorEntra?.equipo ||
+                    equipos[i] ||
+                    "",
+
+                pais:
+                    jugadorEntra?.pais ||
+                    "",
+
+                minuto:
+                    tiempos[i] || "",
+
+                camisetaEntra:
+                    entradas[i] || "",
+
+                nombreEntra:
+                    jugadorEntra?.Name || "",
+
+                camisetaSale:
+                    salidas[i] || "",
+
+                nombreSale:
+                    jugadorSale?.Name || "",
+
+                idEntra:
+                    jugadoresIn[i] || "",
+
+                idSale:
+                    jugadoresOut[i] || ""
+            });
+        }
+    }
+
+    return sustituciones;
+}
+
+
+async function obtenerPartidoFutbol(unidad) {
+
+    if (!unidad?.resCode) {
+        throw new Error(
+            "La unidad no tiene ResCode"
+        );
+    }
+
+    const resultado =
+        await obtenerResultado(
+            "FBL",
+            unidad.resCode
+        );
+
+    const info =
+        resultado.Info || {};
+
+    const resultados =
+        resultado.Results || {};
+
+    return {
+
+        info: {
+            fecha:
+                info.DateTimeRaw || "",
+
+            deporte:
+                info.DiscDesc || "",
+
+            evento:
+                info.EventDesc || "",
+
+            fase:
+                info.PhaseDesc || "",
+
+            faseCorta:
+                info.PhaseDescA || "",
+
+            unidad:
+                info.UnitDesc || "",
+
+            estado:
+                info.Status || "",
+
+            estadoTexto:
+                info.StatusDesc || "",
+
+            estadio:
+                info.VenueDesc || "",
+
+            sede:
+                info.LocDesc || "",
+
+            sedeCodigo:
+                info.Loc || "",
+
+            venueCodigo:
+                info.Venue || "",
+
+            enVivo:
+                info.IsLive === true
+        },
+
+        marcador: {
+            resultado:
+                resultados.Result || "",
+
+            detalle:
+                resultados.ResDetail || "",
+
+            duracion:
+                resultados.Duration || "",
+
+            periodoActual:
+                resultados.CurrentPeriod || 0
+        },
+
+        equipos:
+            resultado.Competitors.map(
+                normalizarEstadisticasFutbol
+            ),
+
+        goleadores:
+            obtenerGoleadoresFutbol(
+                resultado
+            ),
+
+        jugadores:
+            obtenerJugadoresFutbol(
+                resultado
+            ),
+
+        sustituciones:
+            obtenerSustitucionesFutbol(
+                resultado
+            ),
+
+        periodos:
+            resultados.Periods || [],
+
+        extensiones:
+            resultados.Extensions || []
+    };
+}
 // ========================================
 // INICIAR
 // ========================================
