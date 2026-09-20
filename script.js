@@ -122,26 +122,20 @@ async function obtenerDisciplinas() {
 // PRUEBA DE CONEXIÓN
 // ========================================
 
+let disciplinas = [];
+
 async function probarAPI() {
-
     try {
+        disciplinas = await obtenerDisciplinas();
 
-        const disciplinas =
-            await obtenerDisciplinas();
-
-        console.log(
-            "API conectada correctamente."
-        );
-
+        console.log("API conectada correctamente.");
         console.log(
             "Cantidad de disciplinas:",
             disciplinas.length
         );
-
         console.table(disciplinas);
 
     } catch (error) {
-
         console.error(
             "Error conectando con la API:",
             error
