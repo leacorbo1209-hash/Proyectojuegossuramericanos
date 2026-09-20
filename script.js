@@ -104,7 +104,10 @@ async function obtenerDisciplinas() {
 }
 
 
-// Variables globales
+// ========================================
+// VARIABLES GLOBALES
+// ========================================
+
 let disciplinas = [];
 let catalogoDisciplinas = [];
 
@@ -177,7 +180,65 @@ async function cargarDisciplinas() {
 
 
 // ========================================
+// ANALIZAR LAS 60 DISCIPLINAS
+// ========================================
+
+async function analizarDisciplinas() {
+
+    const resultados = [];
+
+    for (const disc of disciplinas) {
+
+        try {
+
+            const data = await obtenerDatos(
+                `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc.codigo}/disc/data`
+            );
+
+            resultados.push({
+                codigo: disc.codigo,
+                nombre: disc.nombre,
+                eventos: data.Events?.length ?? 0,
+                dias: data.Days?.length ?? 0,
+                grupos: data.HasGroups ?? false,
+                brackets: data.HasBracket ?? false,
+                rankingFinal: data.HasFRank ?? false,
+                records: data.Config?.HasRecords ?? false,
+                stats: data.Config?.HasStats ?? false,
+                entradas: data.Config?.HasEntries ?? false
+            });
+
+        } catch (error) {
+
+            resultados.push({
+                codigo: disc.codigo,
+                nombre: disc.nombre,
+                error: error.message
+            });
+        }
+    }
+
+    window.analisisDisciplinas =
+        resultados;
+
+    console.log(
+        "Análisis real de las 60 disciplinas:"
+    );
+
+    console.table(
+        resultados
+    );
+
+    return resultados;
+}
+
+
+// ========================================
 // INICIAR
 // ========================================
 
-cargarDisciplinas();
+cargarDisciplinas().then(() => {
+
+    analizarDisciplinas();
+
+});
