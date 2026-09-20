@@ -218,21 +218,16 @@ async function analizarDisciplinas() {
         }
     }
 
-    window.analisisDisciplinas =
-        resultados;
+    window.analisisDisciplinas = resultados;
 
     console.log(
         "Análisis real de las 60 disciplinas:"
     );
 
-    console.table(
-        resultados
-    );
+    console.table(resultados);
 
     return resultados;
 }
-
-
 // ========================================
 // INICIAR
 // ========================================
