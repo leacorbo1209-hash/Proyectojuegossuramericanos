@@ -31,3 +31,55 @@ if (temaGuardado === "oscuro") {
 actualizarTema();
 
 themeButton.addEventListener("click", cambiarTema);
+
+const API_BASE = "https://back.results.santafe2026.org";
+
+async function obtenerDatos(url) {
+    const respuesta = await fetch(url);
+
+    if (!respuesta.ok) {
+        throw new Error(`HTTP ${respuesta.status}`);
+    }
+
+    const textoComprimido = await respuesta.text();
+
+    const bytes = new Uint8Array(textoComprimido.length);
+
+    for (let i = 0; i < textoComprimido.length; i++) {
+        bytes[i] = textoComprimido.charCodeAt(i) & 255;
+    }
+
+    const ds = new DecompressionStream("deflate");
+
+    const stream = new Blob([bytes])
+        .stream()
+        .pipeThrough(ds);
+
+    const json = await new Response(stream).text();
+
+    return JSON.parse(json);
+}
+
+
+async function obtenerDisciplinas() {
+    const url =
+        `${API_BASE}/s/JSUD2026/en/ALL/disc/list`;
+
+    return await obtenerDatos(url);
+}
+
+
+async function probarAPI() {
+    try {
+        const disciplinas = await obtenerDisciplinas();
+
+        console.log("API conectada correctamente.");
+        console.log("Cantidad de disciplinas:", disciplinas.length);
+        console.table(disciplinas);
+
+    } catch (error) {
+        console.error("Error conectando con la API:", error);
+    }
+}
+
+probarAPI();
