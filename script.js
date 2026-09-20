@@ -298,6 +298,113 @@ async function analizarEventosTodasLasDisciplinas() {
 }
 
 // ========================================
+// NORMALIZAR UNA UNIDAD
+// ========================================
+
+function normalizarUnidad(unidad) {
+
+    const esEnfrentamiento =
+        !!unidad.Home || !!unidad.Away;
+
+    let participantes = [];
+
+    if (esEnfrentamiento) {
+
+        if (unidad.Home) {
+            participantes.push({
+                lado: "home",
+                nombre: unidad.Home.Name || "",
+                pais: unidad.Home.Org || "",
+                resultado: unidad.Home.Result || "",
+                ganador: unidad.Home.Winner === true
+            });
+        }
+
+        if (unidad.Away) {
+            participantes.push({
+                lado: "away",
+                nombre: unidad.Away.Name || "",
+                pais: unidad.Away.Org || "",
+                resultado: unidad.Away.Result || "",
+                ganador: unidad.Away.Winner === true
+            });
+        }
+    }
+
+    return {
+
+        // IDENTIFICACIÓN
+        codigoDeporte: unidad.Disc || "",
+        deporte: unidad.DiscDesc || "",
+
+        clave: unidad.Key || "",
+        resCode: unidad.ResCode || "",
+
+        // EVENTO
+        evento: unidad.Event || "",
+        eventoNombre: unidad.EventDesc || "",
+
+        // FASE
+        fase: unidad.Phase || "",
+        faseNombre: unidad.PhaseDesc || "",
+        faseCorta: unidad.PhaseDescA || "",
+
+        // UNIDAD
+        unidadNombre: unidad.UnitDesc || "",
+        unidadCorta: unidad.UnitDescA || "",
+        unidadNumero: unidad.UnitNum || "",
+
+        // FECHA
+        fecha: unidad.DateTimeRaw || "",
+
+        // ESTADO
+        estado: unidad.Status || "",
+        estadoTexto: unidad.StatusDesc || "",
+        enVivo: unidad.IsLive === true,
+        mostrarResultados: unidad.ShowResults === true,
+
+        // TIPO
+        esEnfrentamiento,
+        tipo: esEnfrentamiento
+            ? "equipo"
+            : "individual",
+
+        // PARTICIPANTES
+        participantes,
+
+        // UBICACIÓN
+        sede: unidad.VenueDesc || "",
+        sedeCodigo: unidad.Venue || "",
+        ubicacion: unidad.LocDesc || "",
+        ubicacionCodigo: unidad.Loc || "",
+
+        // MEDALLA
+        medalla: unidad.Medal || "",
+
+        // OTROS
+        estimado: unidad.Estimated === true,
+        ocultarFecha: unidad.HideStartDate === true,
+        ocultarUbicacion: unidad.HideLocation === true
+
+    };
+}
+
+// ========================================
+// OBTENER UNIDADES DE UNA DISCIPLINA
+// ========================================
+
+async function obtenerUnidadesDisciplina(codigo) {
+
+    const data = await obtenerDatos(
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/${codigo}/events/phases/units`
+    );
+
+    return (data || [])
+        .flatMap(evento => evento.Phases || [])
+        .flatMap(fase => fase.Units || [])
+        .map(normalizarUnidad);
+}
+// ========================================
 // INICIAR
 // ========================================
 
