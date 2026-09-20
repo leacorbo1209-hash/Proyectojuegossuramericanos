@@ -50,7 +50,7 @@ themeButton.addEventListener("click", cambiarTema);
 // ========================================
 
 const API_BASE =
-    "https://back.results.santafe2026.org";
+    "https://proyectojuegossuramericanos.leacorbo1209.workers.dev";
 
 const CHAMP =
     "JSUD2026";
@@ -112,7 +112,7 @@ async function obtenerDatos(url) {
 async function obtenerDisciplinas() {
 
     const url =
-        `${API_BASE}/s/${CHAMP}/${LANG}/ALL/disc/list`;
+        `${API_BASE}/api/s/JSUD2026/en/ALL/disc/list`;
 
     return await obtenerDatos(url);
 }
