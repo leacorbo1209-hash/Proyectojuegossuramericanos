@@ -1,9 +1,4 @@
 // ========================================
-// JUEGOS SURAMERICANOS SANTA FE 2026
-// ========================================
-
-
-// ========================================
 // MODO CLARO / OSCURO
 // ========================================
 
@@ -46,40 +41,32 @@ themeButton.addEventListener("click", cambiarTema);
 
 
 // ========================================
-// API OFICIAL
+// API
 // ========================================
 
 const API_BASE =
     "https://proyectojuegossuramericanos.leacorbo1209.workers.dev";
 
-const CHAMP =
-    "JSUD2026";
-
-const LANG =
-    "en";
+const CHAMP = "JSUD2026";
+const LANG = "en";
 
 
 // ========================================
-// OBTENER DATOS DE LA API
+// DATOS COMPRIMIDOS
 // ========================================
 
 async function obtenerDatos(url) {
-
     const respuesta = await fetch(url);
 
     if (!respuesta.ok) {
-        throw new Error(
-            `HTTP ${respuesta.status}`
-        );
+        throw new Error(`HTTP ${respuesta.status}`);
     }
 
     const textoComprimido =
         await respuesta.text();
 
     const bytes =
-        new Uint8Array(
-            textoComprimido.length
-        );
+        new Uint8Array(textoComprimido.length);
 
     for (
         let i = 0;
@@ -106,51 +93,66 @@ async function obtenerDatos(url) {
 
 
 // ========================================
-// OBTENER LAS 60 DISCIPLINAS
+// DISCIPLINAS
 // ========================================
 
 async function obtenerDisciplinas() {
-
     const url =
-        `${API_BASE}/api/s/JSUD2026/en/ALL/disc/list`;
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/ALL/disc/list`;
 
     return await obtenerDatos(url);
 }
 
 
-// ========================================
-// PRUEBA DE CONEXIÓN
-// ========================================
-
+// Variables globales
 let disciplinas = [];
 let catalogoDisciplinas = [];
 
-async function probarAPI() {
+
+// ========================================
+// CONSTRUIR CATÁLOGO
+// ========================================
+
+async function cargarDisciplinas() {
+
     try {
-        disciplinas = await obtenerDisciplinas();
 
-        catalogoDisciplinas = disciplinas
-            .map(disc => ({
-                codigo: disc.Key,
-                nombre: disc.Desc,
-                orden: disc.Order,
-                noSport: disc.NonSport,
-                eventOrder: disc.EventOrder,
-                hasRecords: disc.HasRecords,
-                hasReports: disc.HasReports
-            }))
-            .sort((a, b) =>
-                a.nombre.localeCompare(
-                    b.nombre,
-                    "es",
-                    { sensitivity: "base" }
-                )
-            );
+        disciplinas =
+            await obtenerDisciplinas();
 
-        window.disciplinas = disciplinas;
-        window.catalogoDisciplinas = catalogoDisciplinas;
+        catalogoDisciplinas =
+            disciplinas
+                .map(disc => ({
+                    codigo: disc.Key,
+                    nombre: disc.Desc,
+                    orden: disc.Order,
+                    noSport: disc.NonSport,
+                    eventOrder: disc.EventOrder,
+                    hasRecords: disc.HasRecords,
+                    hasReports: disc.HasReports
+                }))
+                .sort((a, b) =>
+                    a.nombre.localeCompare(
+                        b.nombre,
+                        "es",
+                        {
+                            sensitivity: "base"
+                        }
+                    )
+                );
 
-        console.log("API conectada correctamente.");
+        // Hacerlas accesibles desde la consola
+        window.disciplinas =
+            disciplinas;
+
+        window.catalogoDisciplinas =
+            catalogoDisciplinas;
+
+
+        console.log(
+            "API conectada correctamente."
+        );
+
         console.log(
             "Cantidad de disciplinas:",
             disciplinas.length
@@ -160,9 +162,12 @@ async function probarAPI() {
             "Catálogo de disciplinas:"
         );
 
-        console.table(catalogoDisciplinas);
+        console.table(
+            catalogoDisciplinas
+        );
 
     } catch (error) {
+
         console.error(
             "Error conectando con la API:",
             error
@@ -170,4 +175,9 @@ async function probarAPI() {
     }
 }
 
-probarAPI();
+
+// ========================================
+// INICIAR
+// ========================================
+
+cargarDisciplinas();
