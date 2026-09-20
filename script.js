@@ -404,6 +404,23 @@ async function obtenerUnidadesDisciplina(codigo) {
         .flatMap(fase => fase.Units || [])
         .map(normalizarUnidad);
 }
+
+// ========================================
+// CACHE GLOBAL DE UNIDADES
+// ========================================
+
+let unidadesPorDisciplina = {};
+
+async function cargarUnidadesDisciplina(codigo) {
+
+    const unidades =
+        await obtenerUnidadesDisciplina(codigo);
+
+    unidadesPorDisciplina[codigo] =
+        unidades;
+
+    return unidades;
+}
 // ========================================
 // INICIAR
 // ========================================
