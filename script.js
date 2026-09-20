@@ -880,10 +880,14 @@ async function obtenerPartidoFutbol(unidad) {
 // INICIAR
 // ========================================
 
+// INICIAR
+
 cargarDisciplinas().then(async () => {
 
     await analizarDisciplinas();
 
     await analizarEventosTodasLasDisciplinas();
+
+    await cargarTodasLasUnidades();
 
 });
