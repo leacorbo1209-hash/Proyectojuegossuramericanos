@@ -123,17 +123,44 @@ async function obtenerDisciplinas() {
 // ========================================
 
 let disciplinas = [];
+let catalogoDisciplinas = [];
 
 async function probarAPI() {
     try {
         disciplinas = await obtenerDisciplinas();
+
+        catalogoDisciplinas = disciplinas
+            .map(disc => ({
+                codigo: disc.Key,
+                nombre: disc.Desc,
+                orden: disc.Order,
+                noSport: disc.NonSport,
+                eventOrder: disc.EventOrder,
+                hasRecords: disc.HasRecords,
+                hasReports: disc.HasReports
+            }))
+            .sort((a, b) =>
+                a.nombre.localeCompare(
+                    b.nombre,
+                    "es",
+                    { sensitivity: "base" }
+                )
+            );
+
+        window.disciplinas = disciplinas;
+        window.catalogoDisciplinas = catalogoDisciplinas;
 
         console.log("API conectada correctamente.");
         console.log(
             "Cantidad de disciplinas:",
             disciplinas.length
         );
-        console.table(disciplinas);
+
+        console.log(
+            "Catálogo de disciplinas:"
+        );
+
+        console.table(catalogoDisciplinas);
 
     } catch (error) {
         console.error(
