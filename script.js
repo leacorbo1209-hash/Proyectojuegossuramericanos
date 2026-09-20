@@ -192,12 +192,12 @@ async function analizarDisciplinas() {
         try {
 
             const data = await obtenerDatos(
-                `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc.codigo}/disc/data`
+                `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc.Key}/disc/data`
             );
 
             resultados.push({
-                codigo: disc.codigo,
-                nombre: disc.nombre,
+                codigo: disc.Key,
+                nombre: disc.Desc,
                 eventos: data.Events?.length ?? 0,
                 dias: data.Days?.length ?? 0,
                 grupos: data.HasGroups ?? false,
@@ -211,8 +211,8 @@ async function analizarDisciplinas() {
         } catch (error) {
 
             resultados.push({
-                codigo: disc.codigo,
-                nombre: disc.nombre,
+                codigo: disc.Key,
+                nombre: disc.Desc,
                 error: error.message
             });
         }
