@@ -5,13 +5,8 @@ const themeText = document.getElementById("themeText");
 function actualizarTema() {
     const modoOscuro = document.body.classList.contains("dark");
 
-    if (modoOscuro) {
-        themeIcon.textContent = "☀️";
-        themeText.textContent = "Modo claro";
-    } else {
-        themeIcon.textContent = "🌙";
-        themeText.textContent = "Modo oscuro";
-    }
+    themeIcon.textContent = modoOscuro ? "☀️" : "🌙";
+    themeText.textContent = modoOscuro ? "Modo claro" : "Modo oscuro";
 }
 
 function cambiarTema() {
@@ -27,8 +22,6 @@ function cambiarTema() {
     actualizarTema();
 }
 
-
-// Cargar el tema guardado
 const temaGuardado = localStorage.getItem("tema");
 
 if (temaGuardado === "oscuro") {
@@ -37,6 +30,4 @@ if (temaGuardado === "oscuro") {
 
 actualizarTema();
 
-
-// Botón de cambio de tema
 themeButton.addEventListener("click", cambiarTema);
