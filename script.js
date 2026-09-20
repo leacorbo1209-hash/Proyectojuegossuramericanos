@@ -228,12 +228,83 @@ async function analizarDisciplinas() {
 
     return resultados;
 }
+
+// ========================================
+// EVENTOS Y UNIDADES DE LAS 60 DISCIPLINAS
+// ========================================
+
+async function analizarEventosTodasLasDisciplinas() {
+
+    const resultados = [];
+
+    for (const disc of disciplinas) {
+
+        try {
+
+            const data = await obtenerDatos(
+                `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc.Key}/events/phases/units`
+            );
+
+            const eventos = data || [];
+
+            const fases = eventos.flatMap(
+                evento => evento.Phases || []
+            );
+
+            const unidades = fases.flatMap(
+                fase => fase.Units || []
+            );
+
+            resultados.push({
+                codigo: disc.Key,
+                nombre: disc.Desc,
+                eventos: eventos.length,
+                fases: fases.length,
+                unidades: unidades.length,
+                conResCode: unidades.filter(
+                    u => u.ResCode
+                ).length,
+                conResultados: unidades.filter(
+                    u => u.ShowResults === true
+                ).length,
+                enVivo: unidades.filter(
+                    u => u.IsLive === true
+                ).length
+            });
+
+        } catch (error) {
+
+            resultados.push({
+                codigo: disc.Key,
+                nombre: disc.Desc,
+                error: error.message
+            });
+
+        }
+    }
+
+    window.analisisEventos =
+        resultados;
+
+    console.log(
+        "Análisis de eventos y unidades:"
+    );
+
+    console.table(
+        resultados
+    );
+
+    return resultados;
+}
+
 // ========================================
 // INICIAR
 // ========================================
 
-cargarDisciplinas().then(() => {
+cargarDisciplinas().then(async () => {
 
-    analizarDisciplinas();
+    await analizarDisciplinas();
+
+    await analizarEventosTodasLasDisciplinas();
 
 });
