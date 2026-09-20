@@ -421,6 +421,43 @@ async function cargarUnidadesDisciplina(codigo) {
 
     return unidades;
 }
+
+// ========================================
+// CARGAR TODAS LAS UNIDADES
+// ========================================
+
+async function cargarTodasLasUnidades() {
+
+    for (const disc of disciplinas) {
+
+        try {
+
+            await cargarUnidadesDisciplina(disc.Key);
+
+        } catch (error) {
+
+            console.error(
+                `Error cargando ${disc.Key}:`,
+                error
+            );
+
+        }
+    }
+
+    window.unidadesPorDisciplina =
+        unidadesPorDisciplina;
+
+    console.log(
+        "Unidades de las 60 disciplinas cargadas."
+    );
+
+    console.log(
+        "Disciplinas cargadas:",
+        Object.keys(unidadesPorDisciplina).length
+    );
+
+    return unidadesPorDisciplina;
+}
 // ========================================
 // INICIAR
 // ========================================
