@@ -876,13 +876,13 @@ async function obtenerPartidoFutbol(unidad) {
             resultados.Extensions || []
     };
 }
-// ========================================
-// INICIAR
-// ========================================
-
 // INICIAR
 
-cargarDisciplinas().then(async () => {
+async function iniciarAplicacion() {
+
+    console.log("🚀 Iniciando aplicación...");
+
+    await cargarDisciplinas();
 
     await analizarDisciplinas();
 
@@ -890,4 +890,9 @@ cargarDisciplinas().then(async () => {
 
     await cargarTodasLasUnidades();
 
-});
+    console.log("✅ Aplicación lista");
+
+    window.appLista = true;
+}
+
+iniciarAplicacion();
