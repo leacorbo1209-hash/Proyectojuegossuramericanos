@@ -1752,3 +1752,413 @@ async function iniciarAplicacion() {
     window.appLista = true;
 }
 iniciarAplicacion();
+
+// ========================================
+// UI — EVENTOS EN VIVO
+// ========================================
+
+function crearTarjetaEventoLive(evento) {
+
+    const tarjeta = document.createElement("article");
+
+    tarjeta.className =
+        "evento-live-card" +
+        (evento.favorito ? " favorito" : "");
+
+    tarjeta.dataset.clave = evento.clave;
+
+
+    // ========================================
+    // CABECERA
+    // ========================================
+
+    const cabecera = document.createElement("div");
+
+    cabecera.className =
+        "evento-live-cabecera";
+
+
+    const izquierda = document.createElement("div");
+
+    izquierda.className =
+        "evento-live-deporte";
+
+
+    const indicador =
+        document.createElement("span");
+
+    indicador.className =
+        "evento-live-indicador";
+
+    indicador.textContent = "🔴 LIVE";
+
+
+    const deporte =
+        document.createElement("strong");
+
+    deporte.textContent =
+        evento.deporte || evento.codigoDeporte;
+
+
+    izquierda.appendChild(indicador);
+    izquierda.appendChild(deporte);
+
+
+    // ========================================
+    // FAVORITO
+    // ========================================
+
+    const botonFavorito =
+        document.createElement("button");
+
+    botonFavorito.className =
+        "evento-live-favorito";
+
+    botonFavorito.type = "button";
+
+    botonFavorito.textContent =
+        evento.favorito ? "⭐" : "☆";
+
+    botonFavorito.title =
+        evento.favorito
+            ? "Quitar de favoritos"
+            : "Agregar a favoritos";
+
+
+    botonFavorito.addEventListener(
+        "click",
+        () => {
+
+            alternarFavorito(
+                evento.clave
+            );
+
+            renderEventosLive();
+
+        }
+    );
+
+
+    cabecera.appendChild(izquierda);
+    cabecera.appendChild(botonFavorito);
+
+
+    // ========================================
+    // INFORMACIÓN
+    // ========================================
+
+    const informacion =
+        document.createElement("div");
+
+    informacion.className =
+        "evento-live-info";
+
+
+    const eventoNombre =
+        document.createElement("div");
+
+    eventoNombre.className =
+        "evento-live-evento";
+
+    eventoNombre.textContent =
+        evento.eventoNombre ||
+        evento.evento ||
+        "Evento";
+
+
+    const fase =
+        document.createElement("div");
+
+    fase.className =
+        "evento-live-fase";
+
+    fase.textContent =
+        [
+            evento.faseNombre,
+            evento.unidadNombre
+        ]
+            .filter(Boolean)
+            .join(" · ");
+
+
+    informacion.appendChild(
+        eventoNombre
+    );
+
+    if (fase.textContent) {
+
+        informacion.appendChild(
+            fase
+        );
+
+    }
+
+
+    // ========================================
+    // PARTICIPANTES
+    // ========================================
+
+    const participantes =
+        document.createElement("div");
+
+    participantes.className =
+        "evento-live-participantes";
+
+
+    if (
+        evento.participantes &&
+        evento.participantes.length
+    ) {
+
+        evento.participantes.forEach(
+            participante => {
+
+                const fila =
+                    document.createElement("div");
+
+                fila.className =
+                    "evento-live-participante";
+
+
+                const nombre =
+                    document.createElement("span");
+
+                nombre.textContent =
+                    participante.nombre ||
+                    "Participante";
+
+
+                const pais =
+                    document.createElement("span");
+
+                pais.className =
+                    "evento-live-pais";
+
+                pais.textContent =
+                    participante.pais || "";
+
+
+                const resultado =
+                    document.createElement("strong");
+
+                resultado.className =
+                    "evento-live-resultado";
+
+                resultado.textContent =
+                    participante.resultado || "";
+
+
+                fila.appendChild(nombre);
+
+                if (pais.textContent) {
+
+                    fila.appendChild(
+                        pais
+                    );
+
+                }
+
+                fila.appendChild(
+                    resultado
+                );
+
+
+                participantes.appendChild(
+                    fila
+                );
+
+            }
+        );
+
+    }
+
+
+    // ========================================
+    // MARCADOR DEL RESULTADO
+    // ========================================
+
+    const marcador =
+        document.createElement("div");
+
+    marcador.className =
+        "evento-live-marcador";
+
+
+    const resultadoAPI =
+        evento.resultado?.Results;
+
+
+    if (resultadoAPI) {
+
+        if (
+            resultadoAPI.Result
+        ) {
+
+            marcador.textContent =
+                resultadoAPI.Result;
+
+        } else if (
+            resultadoAPI.ResDetail
+        ) {
+
+            marcador.textContent =
+                resultadoAPI.ResDetail;
+
+        }
+
+    }
+
+
+    // ========================================
+    // PIE
+    // ========================================
+
+    const pie =
+        document.createElement("div");
+
+    pie.className =
+        "evento-live-pie";
+
+
+    const sede =
+        document.createElement("span");
+
+    sede.textContent =
+        [
+            evento.sede,
+            evento.ubicacion
+        ]
+            .filter(Boolean)
+            .join(" · ");
+
+
+    const estado =
+        document.createElement("span");
+
+    estado.textContent =
+        evento.estadoTexto ||
+        "En vivo";
+
+
+    pie.appendChild(sede);
+    pie.appendChild(estado);
+
+
+    // ========================================
+    // ARMAR TARJETA
+    // ========================================
+
+    tarjeta.appendChild(
+        cabecera
+    );
+
+    tarjeta.appendChild(
+        informacion
+    );
+
+    if (
+        participantes.children.length
+    ) {
+
+        tarjeta.appendChild(
+            participantes
+        );
+
+    }
+
+    if (
+        marcador.textContent
+    ) {
+
+        tarjeta.appendChild(
+            marcador
+        );
+
+    }
+
+    tarjeta.appendChild(
+        pie
+    );
+
+
+    return tarjeta;
+
+}
+
+
+// ========================================
+// RENDERIZAR EVENTOS LIVE
+// ========================================
+
+function renderEventosLive() {
+
+    const contenedor =
+        document.getElementById(
+            "eventosLive"
+        );
+
+
+    if (!contenedor) {
+
+        console.warn(
+            "⚠️ No existe #eventosLive en el HTML"
+        );
+
+        return;
+
+    }
+
+
+    const eventos =
+        obtenerEventosLive();
+
+
+    contenedor.innerHTML = "";
+
+
+    if (!eventos.length) {
+
+        const vacio =
+            document.createElement("div");
+
+        vacio.className =
+            "eventos-live-vacio";
+
+        vacio.textContent =
+            "No hay eventos en vivo en este momento.";
+
+        contenedor.appendChild(
+            vacio
+        );
+
+        return;
+
+    }
+
+
+    eventos.forEach(
+        evento => {
+
+            contenedor.appendChild(
+                crearTarjetaEventoLive(
+                    evento
+                )
+            );
+
+        }
+    );
+
+
+    console.log(
+        `🖥️ LIVE UI renderizada: ${eventos.length} eventos`
+    );
+
+}
+
+
+// ========================================
+// EXPONER RENDER
+// ========================================
+
+window.renderEventosLive =
+    renderEventosLive;
