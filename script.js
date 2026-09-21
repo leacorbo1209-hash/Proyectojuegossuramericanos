@@ -2075,42 +2075,70 @@ function crearTarjetaEventoLive(evento) {
     }
 
 
-    // ========================================
-    // MARCADOR DEL RESULTADO
-    // ========================================
+ // ========================================
+// MARCADOR DEL RESULTADO
+// ========================================
 
-    const marcador =
-        document.createElement("div");
+const marcador =
+    document.createElement("div");
 
-    marcador.className =
-        "evento-live-marcador";
+marcador.className =
+    "evento-live-marcador";
 
+const resultadoAPI =
+    evento.resultado?.Results;
 
-    const resultadoAPI =
-        evento.resultado?.Results;
+if (resultadoAPI) {
 
+    // Resultado principal
+    if (resultadoAPI.Result) {
 
-    if (resultadoAPI) {
+        marcador.textContent =
+            resultadoAPI.Result;
 
-        if (
-            resultadoAPI.Result
-        ) {
+    }
+    else if (resultadoAPI.ResDetail) {
 
-            marcador.textContent =
-                resultadoAPI.Result;
-
-        } else if (
-            resultadoAPI.ResDetail
-        ) {
-
-            marcador.textContent =
-                resultadoAPI.ResDetail;
-
-        }
+        marcador.textContent =
+            resultadoAPI.ResDetail;
 
     }
 
+    // Información adicional del partido
+    if (
+        resultadoAPI.CurrentPeriod ||
+        resultadoAPI.Duration
+    ) {
 
+        const detalleMarcador =
+            document.createElement("div");
+
+        detalleMarcador.className =
+            "evento-live-marcador-detalle";
+
+        const partes = [];
+
+        if (resultadoAPI.CurrentPeriod) {
+            partes.push(
+                `Período ${resultadoAPI.CurrentPeriod}`
+            );
+        }
+
+        if (resultadoAPI.Duration) {
+            partes.push(
+                resultadoAPI.Duration
+            );
+        }
+
+        detalleMarcador.textContent =
+            partes.join(" · ");
+
+        marcador.appendChild(
+            detalleMarcador
+        );
+    }
+
+}
     // ========================================
     // PIE
     // ========================================
