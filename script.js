@@ -1033,6 +1033,324 @@ function obtenerEventosConResultados() {
 
 }
 
+// ========================================
+// EVENTOS LIVE + FAVORITOS
+// ========================================
+
+let favoritosEventos = new Set(
+    JSON.parse(
+        localStorage.getItem("favoritosEventos") || "[]"
+    )
+);
+
+
+// ========================================
+// GUARDAR FAVORITOS
+// ========================================
+
+function guardarFavoritosEventos() {
+
+    localStorage.setItem(
+        "favoritosEventos",
+        JSON.stringify(
+            [...favoritosEventos]
+        )
+    );
+
+}
+
+
+// ========================================
+// AGREGAR FAVORITO
+// ========================================
+
+function agregarFavorito(clave) {
+
+    if (!clave) return false;
+
+    favoritosEventos.add(clave);
+
+    guardarFavoritosEventos();
+
+    console.log(
+        "⭐ Evento agregado a favoritos:",
+        clave
+    );
+
+    return true;
+}
+
+
+// ========================================
+// QUITAR FAVORITO
+// ========================================
+
+function quitarFavorito(clave) {
+
+    if (!clave) return false;
+
+    favoritosEventos.delete(clave);
+
+    guardarFavoritosEventos();
+
+    console.log(
+        "☆ Evento quitado de favoritos:",
+        clave
+    );
+
+    return true;
+}
+
+
+// ========================================
+// TOGGLE FAVORITO
+// ========================================
+
+function alternarFavorito(clave) {
+
+    if (
+        favoritosEventos.has(clave)
+    ) {
+
+        return quitarFavorito(clave);
+
+    }
+
+    return agregarFavorito(clave);
+
+}
+
+
+// ========================================
+// COMPROBAR FAVORITO
+// ========================================
+
+function esFavorito(clave) {
+
+    return favoritosEventos.has(clave);
+
+}
+
+
+// ========================================
+// OBTENER EVENTOS LIVE
+// ========================================
+
+function obtenerEventosLive() {
+
+    const eventos = eventosEnVivo
+        .filter(evento =>
+            evento?.clave
+        )
+        .map(evento => {
+
+            const resultado =
+                detallesEventos[
+                    evento.clave
+                ] || null;
+
+            return {
+
+                // Identificación
+                clave: evento.clave,
+
+                codigoDeporte:
+                    evento.codigoDeporte,
+
+                deporte:
+                    evento.deporte,
+
+                // Evento
+                evento:
+                    evento.evento,
+
+                eventoNombre:
+                    evento.eventoNombre,
+
+                fase:
+                    evento.fase,
+
+                faseNombre:
+                    evento.faseNombre,
+
+                // Unidad
+                unidadNombre:
+                    evento.unidadNombre,
+
+                unidadCorta:
+                    evento.unidadCorta,
+
+                unidadNumero:
+                    evento.unidadNumero,
+
+                // Fecha / ubicación
+                fecha:
+                    evento.fecha,
+
+                sede:
+                    evento.sede,
+
+                ubicacion:
+                    evento.ubicacion,
+
+                // Participantes de la agenda
+                participantes:
+                    evento.participantes || [],
+
+                // Resultado completo de la API
+                resultado,
+
+                // Favorito
+                favorito:
+                    esFavorito(
+                        evento.clave
+                    ),
+
+                // Estado
+                estado:
+                    evento.estado,
+
+                estadoTexto:
+                    evento.estadoTexto,
+
+                enVivo: true
+
+            };
+
+        });
+
+
+    // ====================================
+    // ORDEN:
+    // 1. FAVORITOS
+    // 2. RESTO
+    // ====================================
+
+    eventos.sort((a, b) => {
+
+        if (
+            a.favorito &&
+            !b.favorito
+        ) {
+            return -1;
+        }
+
+        if (
+            !a.favorito &&
+            b.favorito
+        ) {
+            return 1;
+        }
+
+        // Dentro del mismo grupo,
+        // mantenemos el orden temporal.
+
+        return (
+            new Date(a.fecha || 0) -
+            new Date(b.fecha || 0)
+        );
+
+    });
+
+
+    window.eventosLive =
+        eventos;
+
+
+    return eventos;
+
+}
+
+
+// ========================================
+// OBTENER LIVE FAVORITOS
+// ========================================
+
+function obtenerLiveFavoritos() {
+
+    return obtenerEventosLive()
+        .filter(evento =>
+            evento.favorito
+        );
+
+}
+
+
+// ========================================
+// OBTENER LIVE NO FAVORITOS
+// ========================================
+
+function obtenerLiveNoFavoritos() {
+
+    return obtenerEventosLive()
+        .filter(evento =>
+            !evento.favorito
+        );
+
+}
+
+
+// ========================================
+// RESUMEN DEL LIVE
+// ========================================
+
+function obtenerResumenLive() {
+
+    const eventos =
+        obtenerEventosLive();
+
+    return {
+
+        total:
+            eventos.length,
+
+        favoritos:
+            eventos.filter(
+                evento =>
+                    evento.favorito
+            ).length,
+
+        otros:
+            eventos.filter(
+                evento =>
+                    !evento.favorito
+            ).length
+
+    };
+
+}
+
+
+// ========================================
+// EXPONER FUNCIONES
+// ========================================
+
+window.favoritosEventos =
+    favoritosEventos;
+
+window.obtenerEventosLive =
+    obtenerEventosLive;
+
+window.obtenerLiveFavoritos =
+    obtenerLiveFavoritos;
+
+window.obtenerLiveNoFavoritos =
+    obtenerLiveNoFavoritos;
+
+window.obtenerResumenLive =
+    obtenerResumenLive;
+
+window.agregarFavorito =
+    agregarFavorito;
+
+window.quitarFavorito =
+    quitarFavorito;
+
+window.alternarFavorito =
+    alternarFavorito;
+
+window.esFavorito =
+    esFavorito;
 
 // ========================================
 // RESULTADO SILENCIOSO
