@@ -1079,26 +1079,65 @@ async function actualizarEvento(unidad) {
 }
 
 
-// ----------------------------------------
-// ACTUALIZAR TODAS LAS UNIDADES
-// ----------------------------------------
+// ACTUALIZACION DE EVENTOS
 
 async function actualizarEventos() {
 
-    console.log("🔄 Actualizando eventos...");
+    console.log("🔄 Actualizando eventos activos...");
 
-    const anteriores =
-        new Map(
-            eventosActuales.map(
-                evento => [
-                    evento.clave,
-                    JSON.stringify(evento)
-                ]
-            )
-        );
+    // Guardamos una copia del estado anterior
+    const anteriores = new Map(
+        eventosActuales.map(evento => [
+            evento.clave,
+            JSON.stringify({
+                estado: evento.estado,
+                enVivo: evento.enVivo,
+                mostrarResultados: evento.mostrarResultados,
+                resCode: evento.resCode,
+                fecha: evento.fecha,
+                participantes: evento.participantes
+            })
+        ])
+    );
 
-    await cargarTodasLasUnidades();
+    // Solo consultamos las disciplinas que actualmente
+    // tienen eventos en vivo o próximos.
+    const codigosActivos = [
+        ...new Set(
+            [
+                ...eventosEnVivo,
+                ...eventosProximos
+            ]
+            .map(evento => evento.codigoDeporte)
+            .filter(Boolean)
+        )
+    ];
 
+    let unidadesActualizadas = 0;
+
+    for (const codigo of codigosActivos) {
+
+        try {
+
+            const nuevasUnidades =
+                await obtenerUnidadesDisciplina(codigo);
+
+            unidadesPorDisciplina[codigo] =
+                nuevasUnidades;
+
+            unidadesActualizadas++;
+
+        } catch (error) {
+
+            console.error(
+                `Error actualizando ${codigo}:`,
+                error
+            );
+
+        }
+    }
+
+    // Reconstruimos la lista de eventos
     clasificarEventos();
 
     const cambios = [];
@@ -1109,26 +1148,35 @@ async function actualizarEventos() {
             anteriores.get(evento.clave);
 
         const actual =
-            JSON.stringify(evento);
+            JSON.stringify({
+                estado: evento.estado,
+                enVivo: evento.enVivo,
+                mostrarResultados:
+                    evento.mostrarResultados,
+                resCode: evento.resCode,
+                fecha: evento.fecha,
+                participantes:
+                    evento.participantes
+            });
 
-        if (anterior !== actual) {
-
+        if (
+            anterior !== undefined &&
+            anterior !== actual
+        ) {
             cambios.push(evento);
-
         }
     }
 
-    console.log(
-        `🔄 Actualización terminada. Cambios: ${cambios.length}`
-    );
-
     window.ultimosCambios = cambios;
 
+    console.log(
+        `🔄 Actualización terminada. ` +
+        `Disciplinas consultadas: ${unidadesActualizadas}. ` +
+        `Cambios reales: ${cambios.length}`
+    );
+
     return cambios;
-
 }
-
-
 // ----------------------------------------
 // INICIAR ACTUALIZACIÓN AUTOMÁTICA
 // ----------------------------------------
