@@ -1350,7 +1350,7 @@ function obtenerEventosLive() {
 
     return eventos;
 }
-}
+
 
 
 // ========================================
