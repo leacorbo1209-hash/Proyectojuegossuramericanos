@@ -1788,13 +1788,21 @@ async function inicializarMotorEventos() {
     await actualizarResultadosLive();
 
 
-    // Iniciamos los ciclos automáticos
+    // Primera renderización de la interfaz
+    renderEventosLive();
+
+
+    // ========================================
+    // ACTUALIZACIÓN AUTOMÁTICA
+    // ========================================
+
     iniciarActualizacionAutomatica(
         10,
         60
     );
 
 }
+
 // INICIAR
 async function iniciarAplicacion() {
 
