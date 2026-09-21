@@ -886,10 +886,19 @@ let eventosEnVivo = [];
 let eventosProximos = [];
 let eventosFinalizados = [];
 
+let detallesEventos = {};
+let firmasResultadosLive = {};
 
-// ----------------------------------------
-// OBTENER TODOS LOS EVENTOS CARGADOS
-// ----------------------------------------
+let intervaloLive = null;
+let intervaloAgenda = null;
+
+let actualizandoLive = false;
+let actualizandoAgenda = false;
+
+
+// ========================================
+// OBTENER TODOS LOS EVENTOS
+// ========================================
 
 function obtenerTodosLosEventos() {
 
@@ -900,9 +909,9 @@ function obtenerTodosLosEventos() {
 }
 
 
-// ----------------------------------------
+// ========================================
 // CLASIFICAR EVENTOS
-// ----------------------------------------
+// ========================================
 
 function clasificarEventos() {
 
@@ -945,31 +954,29 @@ function clasificarEventos() {
         proximos: eventosProximos,
         finalizados: eventosFinalizados
     };
+
 }
 
 
-// ----------------------------------------
-// RESUMEN PARA LA INTERFAZ
-// ----------------------------------------
+// ========================================
+// RESUMEN
+// ========================================
 
 function obtenerResumenEventos() {
 
     return {
         total: eventosActuales.length,
-
         enVivo: eventosEnVivo.length,
-
         proximos: eventosProximos.length,
-
         finalizados: eventosFinalizados.length
     };
 
 }
 
 
-// ----------------------------------------
-// BUSCAR UN EVENTO POR CLAVE
-// ----------------------------------------
+// ========================================
+// BUSCAR EVENTO
+// ========================================
 
 function buscarEvento(clave) {
 
@@ -980,9 +987,9 @@ function buscarEvento(clave) {
 }
 
 
-// ----------------------------------------
-// BUSCAR EVENTOS DE UNA DISCIPLINA
-// ----------------------------------------
+// ========================================
+// EVENTOS DE UNA DISCIPLINA
+// ========================================
 
 function obtenerEventosDisciplina(codigo) {
 
@@ -993,9 +1000,9 @@ function obtenerEventosDisciplina(codigo) {
 }
 
 
-// ----------------------------------------
-// EVENTOS EN UNA FECHA
-// ----------------------------------------
+// ========================================
+// EVENTOS DE UNA FECHA
+// ========================================
 
 function obtenerEventosFecha(fecha) {
 
@@ -1012,9 +1019,9 @@ function obtenerEventosFecha(fecha) {
 }
 
 
-// ----------------------------------------
+// ========================================
 // EVENTOS CON RESULTADOS
-// ----------------------------------------
+// ========================================
 
 function obtenerEventosConResultados() {
 
@@ -1027,218 +1034,366 @@ function obtenerEventosConResultados() {
 }
 
 
-// ----------------------------------------
-// OBTENER DETALLE REAL DE UN EVENTO
-// ----------------------------------------
+// ========================================
+// RESULTADO SILENCIOSO
+// ========================================
 
-async function obtenerDetalleEvento(unidad) {
+async function obtenerResultadoSilencioso(
+    disc,
+    resCode
+) {
 
-    if (!unidad?.resCode) {
-        return null;
+    const url =
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/results/${resCode}`;
+
+    return await obtenerDatos(url);
+
+}
+
+
+// ========================================
+// FIRMA DE RESULTADO
+// ========================================
+
+function crearFirmaResultado(resultado) {
+
+    if (!resultado) {
+        return "";
     }
+
+    /*
+     * No usamos DateTime ni otros campos que puedan
+     * cambiar sin que haya cambiado el resultado.
+     */
+
+    const datos = {
+
+        info: resultado.Info || null,
+
+        results: resultado.Results || null,
+
+        competitors:
+            resultado.Competitors || null
+
+    };
+
+    return JSON.stringify(datos);
+
+}
+
+
+// ========================================
+// ACTUALIZAR RESULTADOS LIVE
+// ========================================
+
+async function actualizarResultadosLive() {
+
+    if (actualizandoLive) {
+        return;
+    }
+
+    actualizandoLive = true;
 
     try {
 
-        const resultado =
-            await obtenerResultado(
-                unidad.codigoDeporte,
-                unidad.resCode
+        const vivos = eventosEnVivo.filter(
+            evento =>
+                evento.resCode &&
+                evento.codigoDeporte
+        );
+
+        const cambios = [];
+
+        const consultas =
+            await Promise.allSettled(
+
+                vivos.map(async evento => {
+
+                    const resultado =
+                        await obtenerResultadoSilencioso(
+                            evento.codigoDeporte,
+                            evento.resCode
+                        );
+
+                    const firma =
+                        crearFirmaResultado(
+                            resultado
+                        );
+
+                    const firmaAnterior =
+                        firmasResultadosLive[
+                            evento.clave
+                        ];
+
+                    /*
+                     * Primera lectura:
+                     * guardamos el resultado pero NO
+                     * lo consideramos un cambio.
+                     */
+
+                    if (
+                        firmaAnterior === undefined
+                    ) {
+
+                        firmasResultadosLive[
+                            evento.clave
+                        ] = firma;
+
+                        detallesEventos[
+                            evento.clave
+                        ] = resultado;
+
+                        return null;
+                    }
+
+                    /*
+                     * Cambio REAL del resultado.
+                     */
+
+                    if (
+                        firmaAnterior !== firma
+                    ) {
+
+                        firmasResultadosLive[
+                            evento.clave
+                        ] = firma;
+
+                        detallesEventos[
+                            evento.clave
+                        ] = resultado;
+
+                        return {
+                            unidad: evento,
+                            resultado
+                        };
+
+                    }
+
+                    return null;
+
+                })
+
             );
 
-        return {
-            unidad,
-            resultado
-        };
+
+        for (const consulta of consultas) {
+
+            if (
+                consulta.status === "fulfilled" &&
+                consulta.value
+            ) {
+
+                cambios.push(
+                    consulta.value
+                );
+
+            }
+
+        }
+
+
+        window.detallesEventos =
+            detallesEventos;
+
+        window.ultimosCambiosLive =
+            cambios;
+
+
+        console.log(
+            `🔴 LIVE: ${vivos.length} eventos ` +
+            `| cambios reales: ${cambios.length}`
+        );
+
+
+        if (cambios.length > 0) {
+
+            console.log(
+                "⚡ Cambios LIVE:",
+                cambios
+            );
+
+        }
+
+        return cambios;
 
     } catch (error) {
 
         console.error(
-            "Error obteniendo evento:",
-            unidad.clave,
+            "❌ Error actualizando LIVE:",
             error
         );
 
-        return null;
+    } finally {
+
+        actualizandoLive = false;
+
     }
 
 }
 
 
-// ----------------------------------------
-// ACTUALIZAR UN EVENTO
-// ----------------------------------------
+// ========================================
+// ACTUALIZAR AGENDA
+// ========================================
 
-async function actualizarEvento(unidad) {
+async function actualizarAgenda() {
 
-    if (!unidad?.resCode) {
-        return null;
-    }
-
-    return await obtenerDetalleEvento(unidad);
-
-}
-
-
-// ACTUALIZACION DE EVENTOS
-
-async function actualizarEventos() {
-
-    console.log("🔄 Actualizando eventos activos...");
-
-    // Guardamos una copia del estado anterior
-    const anteriores = new Map(
-        eventosActuales.map(evento => [
-            evento.clave,
-            JSON.stringify({
-                estado: evento.estado,
-                enVivo: evento.enVivo,
-                mostrarResultados: evento.mostrarResultados,
-                resCode: evento.resCode,
-                fecha: evento.fecha,
-                participantes: evento.participantes
-            })
-        ])
-    );
-
-    // Solo consultamos las disciplinas que actualmente
-    // tienen eventos en vivo o próximos.
-    const codigosActivos = [
-        ...new Set(
-            [
-                ...eventosEnVivo,
-                ...eventosProximos
-            ]
-            .map(evento => evento.codigoDeporte)
-            .filter(Boolean)
-        )
-    ];
-
-    let unidadesActualizadas = 0;
-
-    for (const codigo of codigosActivos) {
-
-        try {
-
-            const nuevasUnidades =
-                await obtenerUnidadesDisciplina(codigo);
-
-            unidadesPorDisciplina[codigo] =
-                nuevasUnidades;
-
-            unidadesActualizadas++;
-
-        } catch (error) {
-
-            console.error(
-                `Error actualizando ${codigo}:`,
-                error
-            );
-
-        }
-    }
-
-    // Reconstruimos la lista de eventos
-    clasificarEventos();
-
-    const cambios = [];
-
-    for (const evento of eventosActuales) {
-
-        const anterior =
-            anteriores.get(evento.clave);
-
-        const actual =
-            JSON.stringify({
-                estado: evento.estado,
-                enVivo: evento.enVivo,
-                mostrarResultados:
-                    evento.mostrarResultados,
-                resCode: evento.resCode,
-                fecha: evento.fecha,
-                participantes:
-                    evento.participantes
-            });
-
-        if (
-            anterior !== undefined &&
-            anterior !== actual
-        ) {
-            cambios.push(evento);
-        }
-    }
-
-    window.ultimosCambios = cambios;
-
-    console.log(
-        `🔄 Actualización terminada. ` +
-        `Disciplinas consultadas: ${unidadesActualizadas}. ` +
-        `Cambios reales: ${cambios.length}`
-    );
-
-    return cambios;
-}
-// ----------------------------------------
-// INICIAR ACTUALIZACIÓN AUTOMÁTICA
-// ----------------------------------------
-
-let intervaloActualizacion = null;
-
-function iniciarActualizacionAutomatica(
-    segundos = 10
-) {
-
-    if (intervaloActualizacion) {
-
-        clearInterval(
-            intervaloActualizacion
-        );
-
-    }
-
-    console.log(
-        `🔴 Actualización automática cada ${segundos}s`
-    );
-
-    intervaloActualizacion =
-        setInterval(
-            actualizarEventos,
-            segundos * 1000
-        );
-
-    window.intervaloActualizacion =
-        intervaloActualizacion;
-
-}
-
-
-// ----------------------------------------
-// DETENER ACTUALIZACIÓN
-// ----------------------------------------
-
-function detenerActualizacionAutomatica() {
-
-    if (!intervaloActualizacion) {
+    if (actualizandoAgenda) {
         return;
     }
 
-    clearInterval(
-        intervaloActualizacion
-    );
+    actualizandoAgenda = true;
 
-    intervaloActualizacion = null;
+    try {
 
-    console.log(
-        "⏹️ Actualización automática detenida."
-    );
+        console.log(
+            "📅 Actualizando agenda..."
+        );
+
+        await cargarTodasLasUnidades();
+
+        clasificarEventos();
+
+        console.log(
+            `📅 Agenda actualizada | ` +
+            `LIVE: ${eventosEnVivo.length} | ` +
+            `próximos: ${eventosProximos.length}`
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ Error actualizando agenda:",
+            error
+        );
+
+    } finally {
+
+        actualizandoAgenda = false;
+
+    }
 
 }
 
 
-// ----------------------------------------
-// INICIALIZAR MOTOR DE EVENTOS
-// ----------------------------------------
+// ========================================
+// ACTUALIZAR UN EVENTO INDIVIDUAL
+// ========================================
 
-function inicializarMotorEventos() {
+async function actualizarEventoLive(clave) {
+
+    const evento =
+        buscarEvento(clave);
+
+    if (!evento) {
+        return null;
+    }
+
+    if (!evento.resCode) {
+        return null;
+    }
+
+    const resultado =
+        await obtenerResultadoSilencioso(
+            evento.codigoDeporte,
+            evento.resCode
+        );
+
+    detallesEventos[clave] =
+        resultado;
+
+    firmasResultadosLive[clave] =
+        crearFirmaResultado(resultado);
+
+    window.detallesEventos =
+        detallesEventos;
+
+    return {
+        unidad: evento,
+        resultado
+    };
+
+}
+
+
+// ========================================
+// INICIAR ACTUALIZACIÓN AUTOMÁTICA
+// ========================================
+
+function iniciarActualizacionAutomatica(
+    segundosLive = 10,
+    segundosAgenda = 60
+) {
+
+    detenerActualizacionAutomatica();
+
+
+    console.log(
+        `🔴 LIVE cada ${segundosLive}s`
+    );
+
+    console.log(
+        `📅 Agenda cada ${segundosAgenda}s`
+    );
+
+
+    intervaloLive =
+        setInterval(
+            actualizarResultadosLive,
+            segundosLive * 1000
+        );
+
+
+    intervaloAgenda =
+        setInterval(
+            actualizarAgenda,
+            segundosAgenda * 1000
+        );
+
+
+    window.intervaloLive =
+        intervaloLive;
+
+    window.intervaloAgenda =
+        intervaloAgenda;
+
+}
+
+
+// ========================================
+// DETENER ACTUALIZACIÓN
+// ========================================
+
+function detenerActualizacionAutomatica() {
+
+    if (intervaloLive) {
+
+        clearInterval(
+            intervaloLive
+        );
+
+        intervaloLive = null;
+
+    }
+
+    if (intervaloAgenda) {
+
+        clearInterval(
+            intervaloAgenda
+        );
+
+        intervaloAgenda = null;
+
+    }
+
+}
+
+
+// ========================================
+// INICIALIZAR MOTOR
+// ========================================
+
+async function inicializarMotorEventos() {
 
     clasificarEventos();
 
@@ -1247,7 +1402,16 @@ function inicializarMotorEventos() {
         obtenerResumenEventos()
     );
 
-    iniciarActualizacionAutomatica(10);
+
+    // Primera carga de resultados LIVE
+    await actualizarResultadosLive();
+
+
+    // Iniciamos los ciclos automáticos
+    iniciarActualizacionAutomatica(
+        10,
+        60
+    );
 
 }
 // INICIAR
