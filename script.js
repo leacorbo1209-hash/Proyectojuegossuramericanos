@@ -1,5 +1,5 @@
 // ========================================
-// MODO CLARO / OSCURO
+// MODO CLARO / OSCUROO
 // ========================================
 
 const themeButton = document.getElementById("themeButton");
