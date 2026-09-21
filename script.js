@@ -876,8 +876,333 @@ async function obtenerPartidoFutbol(unidad) {
             resultados.Extensions || []
     };
 }
-// INICIAR
 
+// ========================================
+// MOTOR DE EVENTOS DE LA APLICACIÓN
+// ========================================
+
+let eventosActuales = [];
+let eventosEnVivo = [];
+let eventosProximos = [];
+let eventosFinalizados = [];
+
+
+// ----------------------------------------
+// OBTENER TODOS LOS EVENTOS CARGADOS
+// ----------------------------------------
+
+function obtenerTodosLosEventos() {
+
+    return Object.values(unidadesPorDisciplina)
+        .flat()
+        .filter(unidad => unidad?.clave);
+
+}
+
+
+// ----------------------------------------
+// CLASIFICAR EVENTOS
+// ----------------------------------------
+
+function clasificarEventos() {
+
+    const todos = obtenerTodosLosEventos();
+
+    eventosActuales = todos;
+
+    eventosEnVivo = todos.filter(unidad =>
+        unidad.enVivo ||
+        unidad.estado === "RUNNING"
+    );
+
+    eventosFinalizados = todos.filter(unidad =>
+        unidad.mostrarResultados &&
+        [
+            "OFFICIAL",
+            "UNOFFICIAL",
+            "PROVISIONAL"
+        ].includes(unidad.estado)
+    );
+
+    eventosProximos = todos.filter(unidad =>
+        !unidad.enVivo &&
+        !unidad.mostrarResultados &&
+        [
+            "SCHEDULED",
+            "START_LIST",
+            "GETTING_READY"
+        ].includes(unidad.estado)
+    );
+
+    window.eventosActuales = eventosActuales;
+    window.eventosEnVivo = eventosEnVivo;
+    window.eventosProximos = eventosProximos;
+    window.eventosFinalizados = eventosFinalizados;
+
+    return {
+        todos: eventosActuales,
+        enVivo: eventosEnVivo,
+        proximos: eventosProximos,
+        finalizados: eventosFinalizados
+    };
+}
+
+
+// ----------------------------------------
+// RESUMEN PARA LA INTERFAZ
+// ----------------------------------------
+
+function obtenerResumenEventos() {
+
+    return {
+        total: eventosActuales.length,
+
+        enVivo: eventosEnVivo.length,
+
+        proximos: eventosProximos.length,
+
+        finalizados: eventosFinalizados.length
+    };
+
+}
+
+
+// ----------------------------------------
+// BUSCAR UN EVENTO POR CLAVE
+// ----------------------------------------
+
+function buscarEvento(clave) {
+
+    return eventosActuales.find(
+        evento => evento.clave === clave
+    ) || null;
+
+}
+
+
+// ----------------------------------------
+// BUSCAR EVENTOS DE UNA DISCIPLINA
+// ----------------------------------------
+
+function obtenerEventosDisciplina(codigo) {
+
+    return eventosActuales.filter(
+        evento => evento.codigoDeporte === codigo
+    );
+
+}
+
+
+// ----------------------------------------
+// EVENTOS EN UNA FECHA
+// ----------------------------------------
+
+function obtenerEventosFecha(fecha) {
+
+    if (!fecha) return [];
+
+    const dia = fecha.slice(0, 10);
+
+    return eventosActuales.filter(
+        evento =>
+            evento.fecha &&
+            evento.fecha.slice(0, 10) === dia
+    );
+
+}
+
+
+// ----------------------------------------
+// EVENTOS CON RESULTADOS
+// ----------------------------------------
+
+function obtenerEventosConResultados() {
+
+    return eventosActuales.filter(
+        evento =>
+            evento.mostrarResultados &&
+            evento.resCode
+    );
+
+}
+
+
+// ----------------------------------------
+// OBTENER DETALLE REAL DE UN EVENTO
+// ----------------------------------------
+
+async function obtenerDetalleEvento(unidad) {
+
+    if (!unidad?.resCode) {
+        return null;
+    }
+
+    try {
+
+        const resultado =
+            await obtenerResultado(
+                unidad.codigoDeporte,
+                unidad.resCode
+            );
+
+        return {
+            unidad,
+            resultado
+        };
+
+    } catch (error) {
+
+        console.error(
+            "Error obteniendo evento:",
+            unidad.clave,
+            error
+        );
+
+        return null;
+    }
+
+}
+
+
+// ----------------------------------------
+// ACTUALIZAR UN EVENTO
+// ----------------------------------------
+
+async function actualizarEvento(unidad) {
+
+    if (!unidad?.resCode) {
+        return null;
+    }
+
+    return await obtenerDetalleEvento(unidad);
+
+}
+
+
+// ----------------------------------------
+// ACTUALIZAR TODAS LAS UNIDADES
+// ----------------------------------------
+
+async function actualizarEventos() {
+
+    console.log("🔄 Actualizando eventos...");
+
+    const anteriores =
+        new Map(
+            eventosActuales.map(
+                evento => [
+                    evento.clave,
+                    JSON.stringify(evento)
+                ]
+            )
+        );
+
+    await cargarTodasLasUnidades();
+
+    clasificarEventos();
+
+    const cambios = [];
+
+    for (const evento of eventosActuales) {
+
+        const anterior =
+            anteriores.get(evento.clave);
+
+        const actual =
+            JSON.stringify(evento);
+
+        if (anterior !== actual) {
+
+            cambios.push(evento);
+
+        }
+    }
+
+    console.log(
+        `🔄 Actualización terminada. Cambios: ${cambios.length}`
+    );
+
+    window.ultimosCambios = cambios;
+
+    return cambios;
+
+}
+
+
+// ----------------------------------------
+// INICIAR ACTUALIZACIÓN AUTOMÁTICA
+// ----------------------------------------
+
+let intervaloActualizacion = null;
+
+function iniciarActualizacionAutomatica(
+    segundos = 10
+) {
+
+    if (intervaloActualizacion) {
+
+        clearInterval(
+            intervaloActualizacion
+        );
+
+    }
+
+    console.log(
+        `🔴 Actualización automática cada ${segundos}s`
+    );
+
+    intervaloActualizacion =
+        setInterval(
+            actualizarEventos,
+            segundos * 1000
+        );
+
+    window.intervaloActualizacion =
+        intervaloActualizacion;
+
+}
+
+
+// ----------------------------------------
+// DETENER ACTUALIZACIÓN
+// ----------------------------------------
+
+function detenerActualizacionAutomatica() {
+
+    if (!intervaloActualizacion) {
+        return;
+    }
+
+    clearInterval(
+        intervaloActualizacion
+    );
+
+    intervaloActualizacion = null;
+
+    console.log(
+        "⏹️ Actualización automática detenida."
+    );
+
+}
+
+
+// ----------------------------------------
+// INICIALIZAR MOTOR DE EVENTOS
+// ----------------------------------------
+
+function inicializarMotorEventos() {
+
+    clasificarEventos();
+
+    console.log(
+        "📊 Motor de eventos iniciado:",
+        obtenerResumenEventos()
+    );
+
+    iniciarActualizacionAutomatica(10);
+
+}
+// INICIAR
 async function iniciarAplicacion() {
 
     console.log("🚀 Iniciando aplicación...");
@@ -890,9 +1215,10 @@ async function iniciarAplicacion() {
 
     await cargarTodasLasUnidades();
 
+    inicializarMotorEventos();
+
     console.log("✅ Aplicación lista");
 
     window.appLista = true;
 }
-
 iniciarAplicacion();
