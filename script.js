@@ -428,37 +428,100 @@ async function cargarUnidadesDisciplina(codigo) {
 
 async function cargarTodasLasUnidades() {
 
+    const errores = [];
+
     for (const disc of disciplinas) {
 
         try {
 
-            await cargarUnidadesDisciplina(disc.Key);
+            const unidades =
+                await cargarUnidadesDisciplina(
+                    disc.Key
+                );
+
+            // Guardamos normalmente
+            unidadesPorDisciplina[disc.Key] =
+                unidades;
 
         } catch (error) {
 
-            console.error(
-                `Error cargando ${disc.Key}:`,
-                error
+            console.warn(
+                `⚠️ No se pudo actualizar ${disc.Key}:`,
+                error.message
             );
 
+            errores.push({
+                codigo: disc.Key,
+                nombre: disc.Desc,
+                error: error.message
+            });
+
+            /*
+             * IMPORTANTE:
+             *
+             * Si esta disciplina ya tenía datos
+             * cargados anteriormente, NO los
+             * eliminamos.
+             *
+             * Así un fallo temporal del servidor
+             * no hace desaparecer eventos.
+             */
+
+            if (
+                !unidadesPorDisciplina[disc.Key]
+            ) {
+
+                unidadesPorDisciplina[disc.Key] =
+                    [];
+
+            }
+
         }
+
     }
+
+
+    // ========================================
+    // EXPONER DATOS
+    // ========================================
 
     window.unidadesPorDisciplina =
         unidadesPorDisciplina;
 
+    window.erroresCargaUnidades =
+        errores;
+
+
     console.log(
-        "Unidades de las 60 disciplinas cargadas."
+        "📦 Unidades de las 60 disciplinas procesadas."
     );
 
     console.log(
         "Disciplinas cargadas:",
-        Object.keys(unidadesPorDisciplina).length
+        Object.keys(
+            unidadesPorDisciplina
+        ).length
     );
+
+
+    if (errores.length > 0) {
+
+        console.warn(
+            `⚠️ Disciplinas con errores: ${errores.length}`,
+            errores
+        );
+
+    } else {
+
+        console.log(
+            "✅ Todas las disciplinas se actualizaron correctamente."
+        );
+
+    }
+
 
     return unidadesPorDisciplina;
 }
-
 // ========================================
 // FÚTBOL — RESULTADOS COMPLETOS
 // ========================================
