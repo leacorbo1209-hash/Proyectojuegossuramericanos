@@ -1202,20 +1202,55 @@ function esFavorito(clave) {
 function obtenerEventosLive() {
 
     const eventos = eventosEnVivo
-        .filter(evento =>
-            evento?.clave
-        )
+        .filter(evento => evento?.clave)
         .map(evento => {
 
             const resultado =
-                detallesEventos[
-                    evento.clave
-                ] || null;
+                detallesEventos[evento.clave] || null;
+
+            // ================================
+            // PARTICIPANTES ACTUALIZADOS
+            // ================================
+
+            let participantes =
+                evento.participantes || [];
+
+            if (
+                resultado?.Competitors &&
+                Array.isArray(resultado.Competitors)
+            ) {
+
+                participantes =
+                    resultado.Competitors.map(
+                        (competidor, indice) => ({
+                            lado:
+                                indice === 0
+                                    ? "home"
+                                    : "away",
+
+                            nombre:
+                                competidor.Name || "",
+
+                            pais:
+                                competidor.Org || "",
+
+                            resultado:
+                                competidor.Result || "",
+
+                            ganador:
+                                competidor.Winner === true
+                        })
+                    );
+            }
 
             return {
 
                 // Identificación
-                clave: evento.clave,
+                clave:
+                    evento.clave,
+
+                resCode:
+                    evento.resCode,
 
                 codigoDeporte:
                     evento.codigoDeporte,
@@ -1256,18 +1291,15 @@ function obtenerEventosLive() {
                 ubicacion:
                     evento.ubicacion,
 
-                // Participantes de la agenda
-                participantes:
-                    evento.participantes || [],
+                // Participantes
+                participantes,
 
-                // Resultado completo de la API
+                // Resultado completo
                 resultado,
 
                 // Favorito
                 favorito:
-                    esFavorito(
-                        evento.clave
-                    ),
+                    esFavorito(evento.clave),
 
                 // Estado
                 estado:
@@ -1276,8 +1308,8 @@ function obtenerEventosLive() {
                 estadoTexto:
                     evento.estadoTexto,
 
-                enVivo: true
-
+                enVivo:
+                    true
             };
 
         });
@@ -1305,9 +1337,6 @@ function obtenerEventosLive() {
             return 1;
         }
 
-        // Dentro del mismo grupo,
-        // mantenemos el orden temporal.
-
         return (
             new Date(a.fecha || 0) -
             new Date(b.fecha || 0)
@@ -1319,9 +1348,8 @@ function obtenerEventosLive() {
     window.eventosLive =
         eventos;
 
-
     return eventos;
-
+}
 }
 
 
