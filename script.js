@@ -1578,6 +1578,9 @@ async function actualizarResultadosLive() {
 
         window.ultimosCambiosLive =
             cambios;
+        
+        // Actualizar interfaz LIVE
+        renderEventosLive();
 
 
         console.log(
