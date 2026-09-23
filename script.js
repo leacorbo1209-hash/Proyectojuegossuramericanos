@@ -973,49 +973,119 @@ function obtenerTodosLosEventos() {
 
 
 // ========================================
+// OBTENER TODOS LOS EVENTOS
+// ========================================
+
+function obtenerTodosLosEventos() {
+
+    return Object.values(unidadesPorDisciplina)
+        .flat()
+        .filter(unidad => unidad?.clave);
+
+}
+
+
+// ========================================
+// COMPROBAR SI UN EVENTO ESTÁ REALMENTE LIVE
+// ========================================
+
+function esEventoRealmenteEnVivo(evento) {
+
+    if (!evento || !evento.fecha) {
+        return false;
+    }
+
+    const fechaEvento =
+        new Date(evento.fecha);
+
+    const ahora =
+        new Date();
+
+    // La API puede marcar eventos futuros
+    // como LIVE/RUNNING anticipadamente.
+    if (fechaEvento > ahora) {
+        return false;
+    }
+
+    return (
+        evento.enVivo === true ||
+        evento.estado === "RUNNING"
+    );
+}
+
+
+// ========================================
 // CLASIFICAR EVENTOS
 // ========================================
 
 function clasificarEventos() {
 
-    const todos = obtenerTodosLosEventos();
+    const todos =
+        obtenerTodosLosEventos();
 
-    eventosActuales = todos;
+    eventosActuales =
+        todos;
 
-    eventosEnVivo = todos.filter(unidad =>
-        unidad.enVivo ||
-        unidad.estado === "RUNNING"
-    );
+    eventosEnVivo =
+        todos.filter(
+            evento =>
+                esEventoRealmenteEnVivo(evento)
+        );
 
-    eventosFinalizados = todos.filter(unidad =>
-        unidad.mostrarResultados &&
-        [
-            "OFFICIAL",
-            "UNOFFICIAL",
-            "PROVISIONAL"
-        ].includes(unidad.estado)
-    );
+    eventosFinalizados =
+        todos.filter(
+            evento =>
+                evento.mostrarResultados &&
+                [
+                    "OFFICIAL",
+                    "UNOFFICIAL",
+                    "PROVISIONAL"
+                ].includes(evento.estado)
+        );
 
-    eventosProximos = todos.filter(unidad =>
-        !unidad.enVivo &&
-        !unidad.mostrarResultados &&
-        [
-            "SCHEDULED",
-            "START_LIST",
-            "GETTING_READY"
-        ].includes(unidad.estado)
-    );
+    eventosProximos =
+        todos.filter(evento => {
 
-    window.eventosActuales = eventosActuales;
-    window.eventosEnVivo = eventosEnVivo;
-    window.eventosProximos = eventosProximos;
-    window.eventosFinalizados = eventosFinalizados;
+            if (
+                esEventoRealmenteEnVivo(evento)
+            ) {
+                return false;
+            }
+
+            return [
+                "SCHEDULED",
+                "START_LIST",
+                "GETTING_READY",
+                "RUNNING"
+            ].includes(evento.estado);
+        });
+
+
+    window.eventosActuales =
+        eventosActuales;
+
+    window.eventosEnVivo =
+        eventosEnVivo;
+
+    window.eventosProximos =
+        eventosProximos;
+
+    window.eventosFinalizados =
+        eventosFinalizados;
+
 
     return {
-        todos: eventosActuales,
-        enVivo: eventosEnVivo,
-        proximos: eventosProximos,
-        finalizados: eventosFinalizados
+        todos:
+            eventosActuales,
+
+        enVivo:
+            eventosEnVivo,
+
+        proximos:
+            eventosProximos,
+
+        finalizados:
+            eventosFinalizados
     };
 
 }
@@ -1028,10 +1098,17 @@ function clasificarEventos() {
 function obtenerResumenEventos() {
 
     return {
-        total: eventosActuales.length,
-        enVivo: eventosEnVivo.length,
-        proximos: eventosProximos.length,
-        finalizados: eventosFinalizados.length
+        total:
+            eventosActuales.length,
+
+        enVivo:
+            eventosEnVivo.length,
+
+        proximos:
+            eventosProximos.length,
+
+        finalizados:
+            eventosFinalizados.length
     };
 
 }
@@ -1057,7 +1134,8 @@ function buscarEvento(clave) {
 function obtenerEventosDisciplina(codigo) {
 
     return eventosActuales.filter(
-        evento => evento.codigoDeporte === codigo
+        evento =>
+            evento.codigoDeporte === codigo
     );
 
 }
@@ -1071,7 +1149,8 @@ function obtenerEventosFecha(fecha) {
 
     if (!fecha) return [];
 
-    const dia = fecha.slice(0, 10);
+    const dia =
+        fecha.slice(0, 10);
 
     return eventosActuales.filter(
         evento =>
@@ -1095,6 +1174,7 @@ function obtenerEventosConResultados() {
     );
 
 }
+
 
 // ========================================
 // EVENTOS LIVE + FAVORITOS
@@ -1201,23 +1281,11 @@ function esFavorito(clave) {
 
 function obtenerEventosLive() {
 
-    const ahora = new Date();
-
     const eventos = eventosEnVivo
         .filter(evento => evento?.clave)
         .filter(evento => {
 
-            if (!evento.fecha) {
-                return false;
-            }
-
-            const fechaEvento =
-                new Date(evento.fecha);
-
-            return (
-                evento.enVivo === true &&
-                fechaEvento <= ahora
-            );
+            return esEventoRealmenteEnVivo(evento);
 
         })
         .map(evento => {
@@ -1367,6 +1435,97 @@ function obtenerEventosLive() {
 
     return eventos;
 }
+
+
+// ========================================
+// OBTENER LIVE FAVORITOS
+// ========================================
+
+function obtenerLiveFavoritos() {
+
+    return obtenerEventosLive()
+        .filter(evento =>
+            evento.favorito
+        );
+
+}
+
+
+// ========================================
+// OBTENER LIVE NO FAVORITOS
+// ========================================
+
+function obtenerLiveNoFavoritos() {
+
+    return obtenerEventosLive()
+        .filter(evento =>
+            !evento.favorito
+        );
+
+}
+
+
+// ========================================
+// RESUMEN DEL LIVE
+// ========================================
+
+function obtenerResumenLive() {
+
+    const eventos =
+        obtenerEventosLive();
+
+    return {
+
+        total:
+            eventos.length,
+
+        favoritos:
+            eventos.filter(
+                evento =>
+                    evento.favorito
+            ).length,
+
+        otros:
+            eventos.filter(
+                evento =>
+                    !evento.favorito
+            ).length
+
+    };
+
+}
+
+
+// ========================================
+// EXPONER FUNCIONES
+// ========================================
+
+window.favoritosEventos =
+    favoritosEventos;
+
+window.obtenerEventosLive =
+    obtenerEventosLive;
+
+window.obtenerLiveFavoritos =
+    obtenerLiveFavoritos;
+
+window.obtenerLiveNoFavoritos =
+    obtenerLiveNoFavoritos;
+
+window.obtenerResumenLive =
+    obtenerResumenLive;
+
+window.agregarFavorito =
+    agregarFavorito;
+
+window.quitarFavorito =
+    quitarFavorito;
+
+window.alternarFavorito =
+    alternarFavorito;
+
+window.esFavorito =
+    esFavorito;
 // ========================================
 // OBTENER LIVE FAVORITOS
 // ========================================
@@ -1519,11 +1678,12 @@ async function actualizarResultadosLive() {
 
     try {
 
-        const vivos = eventosEnVivo.filter(
-            evento =>
-                evento.resCode &&
-                evento.codigoDeporte
-        );
+const vivos = eventosEnVivo.filter(
+    evento =>
+        esEventoRealmenteEnVivo(evento) &&
+        evento.resCode &&
+        evento.codigoDeporte
+);
 
         const cambios = [];
 
