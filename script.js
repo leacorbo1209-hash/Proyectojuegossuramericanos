@@ -1312,41 +1312,6 @@ function obtenerEventosLive() {
         });
 }
 
-    // ====================================
-    // ORDEN:
-    // 1. FAVORITOS
-    // 2. RESTO
-    // ====================================
-
-    eventos.sort((a, b) => {
-
-        if (
-            a.favorito &&
-            !b.favorito
-        ) {
-            return -1;
-        }
-
-        if (
-            !a.favorito &&
-            b.favorito
-        ) {
-            return 1;
-        }
-
-        return (
-            new Date(a.fecha || 0) -
-            new Date(b.fecha || 0)
-        );
-
-    });
-
-
-    window.eventosLive =
-        eventos;
-
-    return eventos;
-}
 
 
 // ========================================
