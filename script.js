@@ -1793,72 +1793,150 @@ function crearFirmaResultado(resultado) {
 // ========================================
 // ACTUALIZAR RESULTADOS LIVE
 // ========================================
+// ========================================
+// ACTUALIZAR RESULTADOS LIVE
+// ========================================
 async function actualizarResultadosLive() {
-    try {
-        const eventosLiveOficiales = await cargarLiveOficial();
 
-        const anteriores = new Map(
-            eventosEnVivo.map(evento => [
-                evento.clave || evento.resCode,
-                crearFirmaResultado(evento)
-            ])
+    if (actualizandoLive) {
+        return;
+    }
+
+    actualizandoLive = true;
+
+    try {
+
+        const vivos = eventosEnVivo.filter(
+            evento =>
+                esEventoRealmenteEnVivo(evento) &&
+                evento.resCode &&
+                evento.codigoDeporte
         );
 
-        const nuevosEventos = [];
+        const cambios = [];
 
-        for (const evento of eventosLiveOficiales) {
-            try {
-                const resultado = await obtenerResultadoSilencioso(
-                    evento.codigoDeDeporte,
-                    evento.resCode
+        const consultas =
+            await Promise.allSettled(
+
+                vivos.map(async evento => {
+
+                    const resultado =
+                        await obtenerResultadoSilencioso(
+                            evento.codigoDeporte,
+                            evento.resCode
+                        );
+
+                    const firma =
+                        crearFirmaResultado(
+                            resultado
+                        );
+
+                    const firmaAnterior =
+                        firmasResultadosLive[
+                            evento.clave
+                        ];
+
+                    /*
+                     * Primera lectura:
+                     * guardamos el resultado pero NO
+                     * lo consideramos un cambio.
+                     */
+
+                    if (
+                        firmaAnterior === undefined
+                    ) {
+
+                        firmasResultadosLive[
+                            evento.clave
+                        ] = firma;
+
+                        detallesEventos[
+                            evento.clave
+                        ] = resultado;
+
+                        return null;
+                    }
+
+                    /*
+                     * Cambio REAL del resultado.
+                     */
+
+                    if (
+                        firmaAnterior !== firma
+                    ) {
+
+                        firmasResultadosLive[
+                            evento.clave
+                        ] = firma;
+
+                        detallesEventos[
+                            evento.clave
+                        ] = resultado;
+
+                        return {
+                            unidad: evento,
+                            resultado
+                        };
+
+                    }
+
+                    return null;
+
+                })
+
+            );
+
+        for (const consulta of consultas) {
+
+            if (
+                consulta.status === "fulfilled" &&
+                consulta.value
+            ) {
+
+                cambios.push(
+                    consulta.value
                 );
 
-                evento.resultado = resultado;
-
-            } catch (error) {
-                console.warn(
-                    `⚠️ No se pudo obtener resultado LIVE de ${evento.clave}:`,
-                    error.message
-                );
-
-                evento.resultado = null;
             }
 
-            nuevosEventos.push(evento);
         }
 
-        eventosEnVivo = nuevosEventos;
+        window.detallesEventos =
+            detallesEventos;
 
-        window.eventosEnVivo = eventosEnVivo;
+        window.ultimosCambiosLive =
+            cambios;
 
-        const cambios = eventosEnVivo.filter(evento => {
-            const clave =
-                evento.clave || evento.resCode;
-
-            const anterior =
-                anteriores.get(clave);
-
-            const actual =
-                crearFirmaResultado(evento);
-
-            return anterior !== actual;
-        });
-
-        console.log(
-            `🔴 LIVE OFICIAL: ${eventosEnVivo.length} eventos | cambios reales: ${cambios.length}`
-        );
-
+        // Actualizar interfaz LIVE
         renderEventosLive();
 
-        return eventosEnVivo;
+        console.log(
+            `🔴 LIVE: ${vivos.length} eventos ` +
+            `| cambios reales: ${cambios.length}`
+        );
+
+        if (cambios.length > 0) {
+
+            console.log(
+                "⚡ Cambios LIVE:",
+                cambios
+            );
+
+        }
+
+        return cambios;
 
     } catch (error) {
+
         console.error(
-            "❌ Error actualizando LIVE oficial:",
+            "❌ Error actualizando LIVE:",
             error
         );
 
-        return eventosEnVivo;
+    } finally {
+
+        actualizandoLive = false;
+
     }
 }
 // ========================================
