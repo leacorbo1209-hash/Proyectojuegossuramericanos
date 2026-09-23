@@ -1793,157 +1793,74 @@ function crearFirmaResultado(resultado) {
 // ========================================
 // ACTUALIZAR RESULTADOS LIVE
 // ========================================
-
 async function actualizarResultadosLive() {
-
-    if (actualizandoLive) {
-        return;
-    }
-
-    actualizandoLive = true;
-
     try {
+        const eventosLiveOficiales = await cargarLiveOficial();
 
-const vivos = eventosEnVivo.filter(
-    evento =>
-        esEventoRealmenteEnVivo(evento) &&
-        evento.resCode &&
-        evento.codigoDeporte
-);
-
-        const cambios = [];
-
-        const consultas =
-            await Promise.allSettled(
-
-                vivos.map(async evento => {
-
-                    const resultado =
-                        await obtenerResultadoSilencioso(
-                            evento.codigoDeporte,
-                            evento.resCode
-                        );
-
-                    const firma =
-                        crearFirmaResultado(
-                            resultado
-                        );
-
-                    const firmaAnterior =
-                        firmasResultadosLive[
-                            evento.clave
-                        ];
-
-                    /*
-                     * Primera lectura:
-                     * guardamos el resultado pero NO
-                     * lo consideramos un cambio.
-                     */
-
-                    if (
-                        firmaAnterior === undefined
-                    ) {
-
-                        firmasResultadosLive[
-                            evento.clave
-                        ] = firma;
-
-                        detallesEventos[
-                            evento.clave
-                        ] = resultado;
-
-                        return null;
-                    }
-
-                    /*
-                     * Cambio REAL del resultado.
-                     */
-
-                    if (
-                        firmaAnterior !== firma
-                    ) {
-
-                        firmasResultadosLive[
-                            evento.clave
-                        ] = firma;
-
-                        detallesEventos[
-                            evento.clave
-                        ] = resultado;
-
-                        return {
-                            unidad: evento,
-                            resultado
-                        };
-
-                    }
-
-                    return null;
-
-                })
-
-            );
-
-
-        for (const consulta of consultas) {
-
-            if (
-                consulta.status === "fulfilled" &&
-                consulta.value
-            ) {
-
-                cambios.push(
-                    consulta.value
-                );
-
-            }
-
-        }
-
-
-        window.detallesEventos =
-            detallesEventos;
-
-        window.ultimosCambiosLive =
-            cambios;
-        
-        // Actualizar interfaz LIVE
-        renderEventosLive();
-
-
-        console.log(
-            `🔴 LIVE: ${vivos.length} eventos ` +
-            `| cambios reales: ${cambios.length}`
+        const anteriores = new Map(
+            eventosEnVivo.map(evento => [
+                evento.clave || evento.resCode,
+                crearFirmaResultado(evento)
+            ])
         );
 
+        const nuevosEventos = [];
 
-        if (cambios.length > 0) {
+        for (const evento of eventosLiveOficiales) {
+            try {
+                const resultado = await obtenerResultadoSilencioso(
+                    evento.codigoDeDeporte,
+                    evento.resCode
+                );
 
-            console.log(
-                "⚡ Cambios LIVE:",
-                cambios
-            );
+                evento.resultado = resultado;
 
+            } catch (error) {
+                console.warn(
+                    `⚠️ No se pudo obtener resultado LIVE de ${evento.clave}:`,
+                    error.message
+                );
+
+                evento.resultado = null;
+            }
+
+            nuevosEventos.push(evento);
         }
 
-        return cambios;
+        eventosEnVivo = nuevosEventos;
+
+        window.eventosEnVivo = eventosEnVivo;
+
+        const cambios = eventosEnVivo.filter(evento => {
+            const clave =
+                evento.clave || evento.resCode;
+
+            const anterior =
+                anteriores.get(clave);
+
+            const actual =
+                crearFirmaResultado(evento);
+
+            return anterior !== actual;
+        });
+
+        console.log(
+            `🔴 LIVE OFICIAL: ${eventosEnVivo.length} eventos | cambios reales: ${cambios.length}`
+        );
+
+        renderEventosLive();
+
+        return eventosEnVivo;
 
     } catch (error) {
-
         console.error(
-            "❌ Error actualizando LIVE:",
+            "❌ Error actualizando LIVE oficial:",
             error
         );
 
-    } finally {
-
-        actualizandoLive = false;
-
+        return eventosEnVivo;
     }
-
 }
-
-
 // ========================================
 // ACTUALIZAR AGENDA
 // ========================================
