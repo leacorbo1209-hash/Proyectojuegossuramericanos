@@ -1793,9 +1793,6 @@ function crearFirmaResultado(resultado) {
 // ========================================
 // ACTUALIZAR RESULTADOS LIVE
 // ========================================
-// ========================================
-// ACTUALIZAR RESULTADOS LIVE
-// ========================================
 async function actualizarResultadosLive() {
 
     if (actualizandoLive) {
@@ -1806,132 +1803,89 @@ async function actualizarResultadosLive() {
 
     try {
 
-        const vivos = eventosEnVivo.filter(
-            evento =>
-                esEventoRealmenteEnVivo(evento) &&
-                evento.resCode &&
-                evento.codigoDeporte
-        );
+        // ============================================
+        // 1. OBTENER LIVE REAL DESDE LA API OFICIAL
+        // ============================================
 
-        const cambios = [];
+        const eventosLiveOficiales =
+            await cargarLiveOficial();
 
-        const consultas =
-            await Promise.allSettled(
 
-                vivos.map(async evento => {
+        // ============================================
+        // 2. REEMPLAZAR EL LISTADO LIVE ACTUAL
+        // ============================================
 
-                    const resultado =
-                        await obtenerResultadoSilencioso(
-                            evento.codigoDeporte,
-                            evento.resCode
-                        );
+        eventosEnVivo = eventosLiveOficiales;
 
-                    const firma =
-                        crearFirmaResultado(
-                            resultado
-                        );
+        window.eventosEnVivo = eventosEnVivo;
 
-                    const firmaAnterior =
-                        firmasResultadosLive[
-                            evento.clave
-                        ];
 
-                    /*
-                     * Primera lectura:
-                     * guardamos el resultado pero NO
-                     * lo consideramos un cambio.
-                     */
+        // ============================================
+        // 3. GUARDAR DETALLES BÁSICOS
+        // ============================================
 
-                    if (
-                        firmaAnterior === undefined
-                    ) {
+        for (const evento of eventosEnVivo) {
 
-                        firmasResultadosLive[
-                            evento.clave
-                        ] = firma;
-
-                        detallesEventos[
-                            evento.clave
-                        ] = resultado;
-
-                        return null;
-                    }
-
-                    /*
-                     * Cambio REAL del resultado.
-                     */
-
-                    if (
-                        firmaAnterior !== firma
-                    ) {
-
-                        firmasResultadosLive[
-                            evento.clave
-                        ] = firma;
-
-                        detallesEventos[
-                            evento.clave
-                        ] = resultado;
-
-                        return {
-                            unidad: evento,
-                            resultado
-                        };
-
-                    }
-
-                    return null;
-
-                })
-
-            );
-
-        for (const consulta of consultas) {
-
-            if (
-                consulta.status === "fulfilled" &&
-                consulta.value
-            ) {
-
-                cambios.push(
-                    consulta.value
-                );
-
+            if (!evento.clave) {
+                continue;
             }
 
+            detallesEventos[evento.clave] = {
+                Results: {
+                    Result: "",
+                    ResDetail: ""
+                },
+                Competitors:
+                    evento.participantes.map(participante => ({
+                        Name: participante.nombre,
+                        Org: participante.pais,
+                        Result: participante.resultado,
+                        Winner: participante.ganador
+                    }))
+            };
         }
+
 
         window.detallesEventos =
             detallesEventos;
 
-        window.ultimosCambiosLive =
-            cambios;
 
-        // Actualizar interfaz LIVE
+        // ============================================
+        // 4. RENDERIZAR EL LIVE
+        // ============================================
+
         renderEventosLive();
 
+
+        // ============================================
+        // 5. INFORMACIÓN DE DEPURACIÓN
+        // ============================================
+
         console.log(
-            `🔴 LIVE: ${vivos.length} eventos ` +
-            `| cambios reales: ${cambios.length}`
+            `🔴 LIVE OFICIAL: ${eventosEnVivo.length} eventos`
         );
 
-        if (cambios.length > 0) {
+        console.table(
+            eventosEnVivo.map(evento => ({
+                deporte: evento.deporte,
+                evento: evento.eventoNombre,
+                estado: evento.estado,
+                unidad: evento.unidadCorta,
+                clave: evento.clave
+            }))
+        );
 
-            console.log(
-                "⚡ Cambios LIVE:",
-                cambios
-            );
 
-        }
-
-        return cambios;
+        return eventosEnVivo;
 
     } catch (error) {
 
         console.error(
-            "❌ Error actualizando LIVE:",
+            "❌ Error actualizando LIVE oficial:",
             error
         );
+
+        return [];
 
     } finally {
 
