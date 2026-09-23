@@ -1553,7 +1553,133 @@ function obtenerLiveNoFavoritos() {
 
 }
 
+async function cargarLiveOficialDisciplina(disc) {
+    const url =
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/schedule/live-now`;
 
+    const datos = await obtenerDatos(url);
+
+    if (!Array.isArray(datos)) {
+        return [];
+    }
+
+    return datos
+        .filter(unidad => unidad && unidad.IsLive === true)
+        .map(unidad => ({
+            codigoDeporte: unidad.Disc || disc,
+            deporte: unidad.DiscDesc || "",
+            clave: unidad.Key || "",
+            resCode: unidad.ResCode || unidad.Key || "",
+
+            evento: unidad.Event || "",
+            eventoNombre: unidad.EventDesc || "",
+
+            fase: unidad.Phase || "",
+            faseNombre: unidad.PhaseDesc || "",
+            faseCorta: unidad.PhaseDescA || "",
+
+            unidadNombre: unidad.UnitDesc || "",
+            unidadCorta: unidad.UnitDescA || "",
+            unidadNumero: unidad.UnitNum || "",
+
+            fecha: unidad.DateTimeRaw || "",
+
+            estado: unidad.Status || "",
+            estadoTexto: unidad.StatusDesc || "",
+
+            enVivo: unidad.IsLive === true,
+            mostrarResultados: unidad.ShowResults === true,
+
+            esEnfrentamiento: !!unidad.Home || !!unidad.Away,
+            tipo: unidad.Home || unidad.Away
+                ? "equipo"
+                : "individual",
+
+            participantes: [
+                unidad.Home
+                    ? {
+                        lado: "home",
+                        nombre: unidad.Home.Name || "",
+                        pais: unidad.Home.Org || "",
+                        resultado: unidad.Home.Result || "",
+                        ganador: unidad.Home.Winner === true
+                    }
+                    : null,
+
+                unidad.Away
+                    ? {
+                        lado: "away",
+                        nombre: unidad.Away.Name || "",
+                        pais: unidad.Away.Org || "",
+                        resultado: unidad.Away.Result || "",
+                        ganador: unidad.Away.Winner === true
+                    }
+                    : null
+            ].filter(Boolean),
+
+            sede: unidad.VenueDesc || "",
+            sedeCodigo: unidad.Venue || "",
+
+            ubicacion: unidad.LocDesc || "",
+            ubicacionCodigo: unidad.Loc || "",
+
+            medalla: unidad.Medal || "",
+            estimado: unidad.Estimated === true,
+
+            ocultarFecha: unidad.HideStartDate || false,
+            ocultarUbicacion: unidad.HideLocation || false,
+
+            resultado: null
+        }));
+}
+
+
+async function cargarLiveOficial() {
+    const resultados = [];
+    const errores = [];
+
+    for (const disc of disciplinas) {
+        try {
+            const eventos = await cargarLiveOficialDisciplina(disc.Key);
+
+            for (const evento of eventos) {
+                resultados.push(evento);
+            }
+
+        } catch (error) {
+            console.warn(
+                `⚠️ LIVE ${disc.Key}:`,
+                error.message
+            );
+
+            errores.push({
+                codigo: disc.Key,
+                nombre: disc.Desc,
+                error: error.message
+            });
+        }
+    }
+
+    window.erroresLiveOficial = errores;
+
+    return resultados;
+}
+
+cargarLiveOficial().then(eventos => {
+    console.log("🔴 LIVE OFICIAL:", eventos.length);
+    console.table(
+        eventos.map(e => ({
+            deporte: e.deporte,
+            evento: e.eventoNombre,
+            fase: e.faseNombre,
+            unidad: e.unidadCorta,
+            estado: e.estado,
+            fecha: e.fecha,
+            home: e.participantes[0]?.nombre || "",
+            away: e.participantes[1]?.nombre || ""
+        }))
+    );
+});
 // ========================================
 // RESUMEN DEL LIVE
 // ========================================
