@@ -1201,8 +1201,25 @@ function esFavorito(clave) {
 
 function obtenerEventosLive() {
 
+    const ahora = new Date();
+
     const eventos = eventosEnVivo
         .filter(evento => evento?.clave)
+        .filter(evento => {
+
+            if (!evento.fecha) {
+                return false;
+            }
+
+            const fechaEvento =
+                new Date(evento.fecha);
+
+            return (
+                evento.enVivo === true &&
+                fechaEvento <= ahora
+            );
+
+        })
         .map(evento => {
 
             const resultado =
@@ -1350,9 +1367,6 @@ function obtenerEventosLive() {
 
     return eventos;
 }
-
-
-
 // ========================================
 // OBTENER LIVE FAVORITOS
 // ========================================
