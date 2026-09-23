@@ -1281,124 +1281,36 @@ function esFavorito(clave) {
 
 function obtenerEventosLive() {
 
-    const eventos = eventosEnVivo
-        .filter(evento => evento?.clave)
-        .filter(evento => {
-
-            return esEventoRealmenteEnVivo(evento);
-
-        })
+    return eventosEnVivo
+        .filter(evento => evento && evento.enVivo === true)
         .map(evento => {
 
-            const resultado =
-                detallesEventos[evento.clave] || null;
-
-            // ================================
-            // PARTICIPANTES ACTUALIZADOS
-            // ================================
-
-            let participantes =
-                evento.participantes || [];
-
-            if (
-                resultado?.Competitors &&
-                Array.isArray(resultado.Competitors)
-            ) {
-
-                participantes =
-                    resultado.Competitors.map(
-                        (competidor, indice) => ({
-                            lado:
-                                indice === 0
-                                    ? "home"
-                                    : "away",
-
-                            nombre:
-                                competidor.Name || "",
-
-                            pais:
-                                competidor.Org || "",
-
-                            resultado:
-                                competidor.Result || "",
-
-                            ganador:
-                                competidor.Winner === true
-                        })
-                    );
-            }
+            const participantes =
+                Array.isArray(evento.participantes)
+                    ? evento.participantes.map(participante => ({
+                        ...participante
+                    }))
+                    : [];
 
             return {
+                ...evento,
 
-                // Identificación
-                clave:
-                    evento.clave,
-
-                resCode:
-                    evento.resCode,
-
-                codigoDeporte:
-                    evento.codigoDeporte,
-
-                deporte:
-                    evento.deporte,
-
-                // Evento
-                evento:
-                    evento.evento,
-
-                eventoNombre:
-                    evento.eventoNombre,
-
-                fase:
-                    evento.fase,
-
-                faseNombre:
-                    evento.faseNombre,
-
-                // Unidad
-                unidadNombre:
-                    evento.unidadNombre,
-
-                unidadCorta:
-                    evento.unidadCorta,
-
-                unidadNumero:
-                    evento.unidadNumero,
-
-                // Fecha / ubicación
-                fecha:
-                    evento.fecha,
-
-                sede:
-                    evento.sede,
-
-                ubicacion:
-                    evento.ubicacion,
-
-                // Participantes
                 participantes,
 
-                // Resultado completo
-                resultado,
-
-                // Favorito
                 favorito:
-                    esFavorito(evento.clave),
+                    favoritosEventos.has(evento.clave),
 
-                // Estado
                 estado:
-                    evento.estado,
+                    evento.estado || "",
 
                 estadoTexto:
-                    evento.estadoTexto,
+                    evento.estadoTexto || "",
 
                 enVivo:
-                    true
+                    evento.enVivo === true
             };
-
         });
-
+}
 
     // ====================================
     // ORDEN:
