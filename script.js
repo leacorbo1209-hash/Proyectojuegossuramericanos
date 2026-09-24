@@ -1,4 +1,4 @@
-// ========================================
+F// ========================================
 // MODO CLARO / OSCUROO
 // ========================================
 
@@ -2488,74 +2488,183 @@ function renderFavoritos() {
 
     contenedor.replaceChildren();
 
+    // ========================================
+    // SEPARAR POR ESTADO
+    // ========================================
+
+    const enVivo = favoritos.filter(
+        evento => evento.enVivo === true
+    );
+
+    const finalizados = favoritos.filter(
+        evento =>
+            !evento.enVivo &&
+            [
+                "OFFICIAL",
+                "UNOFFICIAL",
+                "PROVISIONAL"
+            ].includes(evento.estado)
+    );
+
+    const proximos = favoritos.filter(
+        evento =>
+            !evento.enVivo &&
+            ![
+                "OFFICIAL",
+                "UNOFFICIAL",
+                "PROVISIONAL"
+            ].includes(evento.estado)
+    );
+
+    // ========================================
+    // CONTADOR
+    // ========================================
+
     if (contador) {
         contador.textContent =
             `${favoritos.length} eventos favoritos`;
     }
 
-    if (favoritos.length === 0) {
+    // ========================================
+    // CREAR GRUPO
+    // ========================================
 
-        const mensaje = document.createElement("p");
+    function crearGrupo(titulo, eventos) {
+
+        if (!eventos.length) return;
+
+        const grupo =
+            document.createElement("section");
+
+        grupo.className =
+            "favoritos-grupo";
+
+        const encabezado =
+            document.createElement("h3");
+
+        encabezado.textContent =
+            titulo;
+
+        grupo.appendChild(encabezado);
+
+        const grid =
+            document.createElement("div");
+
+        grid.className =
+            "eventos-live-grid";
+
+        eventos.sort((a, b) => {
+            return new Date(a.fecha || 0) -
+                   new Date(b.fecha || 0);
+        });
+
+        for (const evento of eventos) {
+
+            const tarjeta =
+                crearTarjetaEventoLive(evento);
+
+            // ========================================
+            // INDICADOR DE ESTADO
+            // ========================================
+
+            const indicador =
+                tarjeta.querySelector(
+                    ".evento-live-indicador"
+                );
+
+            if (indicador) {
+
+                if (evento.enVivo) {
+
+                    indicador.textContent =
+                        "🔴 EN VIVO";
+
+                } else if (
+                    [
+                        "OFFICIAL",
+                        "UNOFFICIAL",
+                        "PROVISIONAL"
+                    ].includes(evento.estado)
+                ) {
+
+                    indicador.textContent =
+                        "FINALIZADO";
+
+                } else {
+
+                    indicador.textContent =
+                        "PROGRAMADO";
+                }
+            }
+
+            // ========================================
+            // BOTÓN FAVORITO
+            // ========================================
+
+            const boton =
+                tarjeta.querySelector(
+                    ".evento-live-favorito"
+                );
+
+            if (boton) {
+
+                boton.addEventListener(
+                    "click",
+                    () => {
+                        renderFavoritos();
+                    }
+                );
+            }
+
+            grid.appendChild(tarjeta);
+        }
+
+        grupo.appendChild(grid);
+        contenedor.appendChild(grupo);
+    }
+
+    // ========================================
+    // MOSTRAR GRUPOS
+    // ========================================
+
+    crearGrupo(
+        "🔴 EN VIVO",
+        enVivo
+    );
+
+    crearGrupo(
+        "📅 PRÓXIMOS",
+        proximos
+    );
+
+    crearGrupo(
+        "✅ FINALIZADOS",
+        finalizados
+    );
+
+    // ========================================
+    // SIN FAVORITOS
+    // ========================================
+
+    if (!favoritos.length) {
+
+        const mensaje =
+            document.createElement("p");
 
         mensaje.textContent =
             "Todavía no tenés eventos favoritos. " +
             "Marcá una estrella en los eventos en vivo.";
 
         contenedor.appendChild(mensaje);
-
-        return;
-    }
-
-    favoritos.sort((a, b) => {
-        return new Date(a.fecha || 0) -
-               new Date(b.fecha || 0);
-    });
-
-    for (const evento of favoritos) {
-
-        const tarjeta =
-            crearTarjetaEventoLive(evento);
-
-        // Adaptamos el indicador según el estado real.
-        const indicador =
-            tarjeta.querySelector(
-                ".evento-live-indicador"
-            );
-
-        if (indicador) {
-
-            indicador.textContent =
-                evento.enVivo
-                    ? "🔴 EN VIVO"
-                    : evento.estado === "OFFICIAL"
-                        ? "FINALIZADO"
-                        : evento.estadoTexto ||
-                          "PROGRAMADO";
-        }
-
-        // El botón de favorito de esta tarjeta
-        // también debe actualizar esta sección.
-        const boton =
-            tarjeta.querySelector(
-                ".evento-live-favorito"
-            );
-
-        if (boton) {
-
-            boton.addEventListener("click", () => {
-                renderFavoritos();
-            });
-        }
-
-        contenedor.appendChild(tarjeta);
     }
 
     console.log(
-        `⭐ Favoritos renderizados: ${favoritos.length}`
+        `⭐ Favoritos renderizados: ${favoritos.length} ` +
+        `(${enVivo.length} LIVE, ` +
+        `${proximos.length} próximos, ` +
+        `${finalizados.length} finalizados)`
     );
 }
-
-
 // ========================================
 // NAVEGACIÓN A FAVORITOS
 // ========================================
