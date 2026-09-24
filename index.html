@@ -23,7 +23,7 @@
 
             <nav class="menu">
 
-                <button class="menu-item active">
+                <button class="menu-item active" id="btnFavoritos">
                     <span class="icon">⭐</span>
                     <span>Favoritos</span>
                 </button>
@@ -67,6 +67,13 @@
 
         <!-- CONTENIDO PRINCIPAL -->
         <main class="main-content">
+       
+            <section id="seccionFavoritos" class="seccion-favoritos" hidden>
+    <h2>⭐ Mis favoritos</h2>
+    <p id="contadorFavoritos"></p>
+    <div id="eventosFavoritos" class="eventos-live-grid"></div>
+</section>
+            
 
             <section id="seccionLive" class="seccion-live">
 
