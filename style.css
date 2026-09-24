@@ -591,3 +591,10 @@ button {
     }
 
 }
+.brand {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
