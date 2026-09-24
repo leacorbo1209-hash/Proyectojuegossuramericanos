@@ -1788,13 +1788,18 @@ async function actualizarAgenda() {
             "📅 Actualizando agenda..."
         );
 
+        // Actualizar todas las unidades de las 60 disciplinas
         await cargarTodasLasUnidades();
 
+        // Actualizar agenda, próximos y finalizados
         clasificarEventos();
+
+        // Volver a cargar el LIVE desde la fuente oficial
+        await actualizarResultadosLive();
 
         console.log(
             `📅 Agenda actualizada | ` +
-            `LIVE: ${eventosEnVivo.length} | ` +
+            `LIVE oficial: ${eventosEnVivo.length} | ` +
             `próximos: ${eventosProximos.length}`
         );
 
@@ -1812,8 +1817,6 @@ async function actualizarAgenda() {
     }
 
 }
-
-
 // ========================================
 // ACTUALIZAR UN EVENTO INDIVIDUAL
 // ========================================
