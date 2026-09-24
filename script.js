@@ -2421,3 +2421,180 @@ function renderEventosLive() {
 
 window.renderEventosLive =
     renderEventosLive;
+
+// ========================================
+// SECCIÓN DE FAVORITOS
+// ========================================
+
+let seccionActual = "inicio";
+
+function obtenerTodosLosFavoritos() {
+
+    // Usamos deporte + clave para identificar cada evento.
+    const mapa = new Map();
+
+    // Primero, los eventos de la agenda.
+    for (const evento of eventosActuales) {
+
+        if (!evento?.clave) continue;
+
+        if (favoritosEventos.has(evento.clave)) {
+            mapa.set(
+                `${evento.codigoDeporte}:${evento.clave}`,
+                evento
+            );
+        }
+    }
+
+    // Después, los LIVE oficiales, que tienen
+    // participantes y marcadores más actualizados.
+    for (const evento of eventosEnVivo) {
+
+        if (!evento?.clave) continue;
+
+        if (favoritosEventos.has(evento.clave)) {
+            mapa.set(
+                `${evento.codigoDeporte}:${evento.clave}`,
+                evento
+            );
+        }
+    }
+
+    return [...mapa.values()].map(evento => ({
+        ...evento,
+        favorito: true,
+        participantes: evento.participantes || []
+    }));
+}
+
+
+// ========================================
+// RENDERIZAR FAVORITOS
+// ========================================
+
+function renderFavoritos() {
+
+    const contenedor =
+        document.getElementById("eventosFavoritos");
+
+    const contador =
+        document.getElementById("contadorFavoritos");
+
+    if (!contenedor) return;
+
+    const favoritos = obtenerTodosLosFavoritos();
+
+    contenedor.replaceChildren();
+
+    if (contador) {
+        contador.textContent =
+            `${favoritos.length} eventos favoritos`;
+    }
+
+    if (favoritos.length === 0) {
+
+        const mensaje = document.createElement("p");
+
+        mensaje.textContent =
+            "Todavía no tenés eventos favoritos. " +
+            "Marcá una estrella en los eventos en vivo.";
+
+        contenedor.appendChild(mensaje);
+
+        return;
+    }
+
+    favoritos.sort((a, b) => {
+        return new Date(a.fecha || 0) -
+               new Date(b.fecha || 0);
+    });
+
+    for (const evento of favoritos) {
+
+        const tarjeta =
+            crearTarjetaEventoLive(evento);
+
+        // Adaptamos el indicador según el estado real.
+        const indicador =
+            tarjeta.querySelector(
+                ".evento-live-indicador"
+            );
+
+        if (indicador) {
+
+            indicador.textContent =
+                evento.enVivo
+                    ? "🔴 EN VIVO"
+                    : evento.estado === "OFFICIAL"
+                        ? "FINALIZADO"
+                        : evento.estadoTexto ||
+                          "PROGRAMADO";
+        }
+
+        // El botón de favorito de esta tarjeta
+        // también debe actualizar esta sección.
+        const boton =
+            tarjeta.querySelector(
+                ".evento-live-favorito"
+            );
+
+        if (boton) {
+
+            boton.addEventListener("click", () => {
+                renderFavoritos();
+            });
+        }
+
+        contenedor.appendChild(tarjeta);
+    }
+
+    console.log(
+        `⭐ Favoritos renderizados: ${favoritos.length}`
+    );
+}
+
+
+// ========================================
+// NAVEGACIÓN A FAVORITOS
+// ========================================
+
+function mostrarFavoritos() {
+
+    seccionActual = "favoritos";
+
+    document.getElementById(
+        "seccionFavoritos"
+    ).hidden = false;
+
+    document.getElementById(
+        "seccionLive"
+    ).hidden = true;
+
+    // Ocultar las secciones estáticas de ejemplo.
+    document.querySelectorAll(
+        ".sport-section"
+    ).forEach(seccion => {
+        seccion.hidden = true;
+    });
+
+    const titulo =
+        document.querySelector(".topbar h1");
+
+    if (titulo) {
+        titulo.textContent = "Mis favoritos";
+    }
+
+    renderFavoritos();
+}
+
+
+// ========================================
+// CONECTAR BOTÓN DEL MENÚ
+// ========================================
+
+document.getElementById(
+    "btnFavoritos"
+)?.addEventListener(
+    "click",
+    mostrarFavoritos
+);
