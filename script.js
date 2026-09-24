@@ -1732,7 +1732,9 @@ async function actualizarResultadosLive() {
         // ============================================
 
         renderEventosLive();
-
+if (seccionActual === "favoritos") {
+    renderFavoritos();
+}
 
         // ============================================
         // 5. INFORMACIÓN DE DEPURACIÓN
