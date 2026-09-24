@@ -2058,18 +2058,22 @@ function crearTarjetaEventoLive(evento) {
             : "Agregar a favoritos";
 
 
-    botonFavorito.addEventListener(
-        "click",
-        () => {
+botonFavorito.addEventListener(
+    "click",
+    () => {
 
-            alternarFavorito(
-                evento.clave
-            );
+        alternarFavorito(
+            evento.clave
+        );
 
+        if (seccionActual === "favoritos") {
+            renderFavoritos();
+        } else {
             renderEventosLive();
-
         }
-    );
+
+    }
+);
 
 
     cabecera.appendChild(izquierda);
@@ -2601,20 +2605,7 @@ function renderFavoritos() {
             // BOTÓN FAVORITO
             // ========================================
 
-            const boton =
-                tarjeta.querySelector(
-                    ".evento-live-favorito"
-                );
 
-            if (boton) {
-
-                boton.addEventListener(
-                    "click",
-                    () => {
-                        renderFavoritos();
-                    }
-                );
-            }
 
             grid.appendChild(tarjeta);
         }
