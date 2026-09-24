@@ -2589,7 +2589,45 @@ function mostrarFavoritos() {
     renderFavoritos();
 }
 
+// ========================================
+// VOLVER A LA PANTALLA PRINCIPAL
+// ========================================
 
+function mostrarPantallaPrincipal() {
+
+    seccionActual = "inicio";
+
+    // Ocultar favoritos
+    const seccionFavoritos =
+        document.getElementById("seccionFavoritos");
+
+    if (seccionFavoritos) {
+        seccionFavoritos.hidden = true;
+    }
+
+    // Mostrar LIVE
+    const seccionLive =
+        document.getElementById("seccionLive");
+
+    if (seccionLive) {
+        seccionLive.hidden = false;
+    }
+
+    // Mostrar las secciones principales
+    document.querySelectorAll(
+        ".sport-section"
+    ).forEach(seccion => {
+        seccion.hidden = false;
+    });
+
+    // Restaurar título
+    const titulo =
+        document.querySelector(".topbar h1");
+
+    if (titulo) {
+        titulo.textContent = "Tus destacados";
+    }
+}
 // ========================================
 // CONECTAR BOTÓN DEL MENÚ
 // ========================================
@@ -2599,4 +2637,14 @@ document.getElementById(
 )?.addEventListener(
     "click",
     mostrarFavoritos
+);
+// ========================================
+// BOTÓN JUEGOS SURAMERICANOS → INICIO
+// ========================================
+
+document.getElementById(
+    "btnInicio"
+)?.addEventListener(
+    "click",
+    mostrarPantallaPrincipal
 );
