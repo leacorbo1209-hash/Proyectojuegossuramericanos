@@ -448,7 +448,155 @@ function renderEquipos() {
             });
         }
     }
+async function obtenerMedalleroCompleto() {
+    const medallero = new Map();
+    const errores = [];
 
+    function asegurarPais(pais) {
+        if (!pais) return;
+
+        if (!medallero.has(pais)) {
+            medallero.set(pais, {
+                pais: pais,
+                oro: 0,
+                plata: 0,
+                bronce: 0,
+                total: 0
+            });
+        }
+    }
+
+    function agregarMedalla(pais, tipo) {
+        if (!pais) return;
+
+        asegurarPais(pais);
+
+        const registro = medallero.get(pais);
+
+        if (tipo === "ME_GOLD") {
+            registro.oro++;
+        }
+
+        if (tipo === "ME_SILVER") {
+            registro.plata++;
+        }
+
+        if (tipo === "ME_BRONZE") {
+            registro.bronce++;
+        }
+
+        registro.total =
+            registro.oro +
+            registro.plata +
+            registro.bronce;
+    }
+
+    const eventosConResultados =
+        eventosActuales.filter(evento =>
+            evento &&
+            evento.estado === "OFFICIAL" &&
+            evento.mostrarResultados === true &&
+            evento.resCode &&
+            evento.codigoDeporte
+        );
+
+    console.log(
+        "Eventos oficiales con resultados:",
+        eventosConResultados.length
+    );
+
+    for (const evento of eventosConResultados) {
+
+        try {
+
+            const resultado =
+                await obtenerResultadoSilencioso(
+                    evento.codigoDeporte,
+                    evento.resCode
+                );
+
+            const competidores =
+                resultado?.Competitors || [];
+
+            for (const competidor of competidores) {
+
+                const medalla =
+                    String(
+                        competidor.Medal || ""
+                    ).toUpperCase();
+
+                if (
+                    medalla === "ME_GOLD" ||
+                    medalla === "ME_SILVER" ||
+                    medalla === "ME_BRONZE"
+                ) {
+                    agregarMedalla(
+                        competidor.Org,
+                        medalla
+                    );
+                }
+            }
+
+        } catch (error) {
+
+            errores.push({
+                deporte: evento.codigoDeporte,
+                evento: evento.eventoNombre,
+                resCode: evento.resCode,
+                error: error.message
+            });
+
+        }
+    }
+
+    const nombresPaises = {
+        ARG: "Argentina",
+        BOL: "Bolivia",
+        BRA: "Brasil",
+        CHI: "Chile",
+        COL: "Colombia",
+        ECU: "Ecuador",
+        PAN: "Panamá",
+        PAR: "Paraguay",
+        PER: "Perú",
+        URU: "Uruguay",
+        VEN: "Venezuela"
+    };
+
+    const resultado =
+        Array.from(medallero.values())
+            .map(pais => ({
+                ...pais,
+                nombre:
+                    nombresPaises[pais.pais] ||
+                    pais.pais
+            }))
+            .sort((a, b) => {
+                if (b.oro !== a.oro) {
+                    return b.oro - a.oro;
+                }
+
+                if (b.plata !== a.plata) {
+                    return b.plata - a.plata;
+                }
+
+                return b.bronce - a.bronce;
+            });
+
+    window.erroresMedallero = errores;
+
+    console.log(
+        "🏅 Medallero completo calculado:",
+        resultado
+    );
+
+    console.log(
+        "⚠️ Errores:",
+        errores.length
+    );
+
+    return resultado;
+}
     function agregarMedalla(pais, nombre, tipo) {
         if (!pais) return;
 
