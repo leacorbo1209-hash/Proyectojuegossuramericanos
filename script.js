@@ -1201,76 +1201,115 @@ function guardarFavoritosEventos() {
     );
 
 }
+// ==========================================
+// Obtener clave favoritos
+// ==========================================
 
+function obtenerClaveFavorito(codigoDeporte, clave) {
 
+    if (!codigoDeporte || !clave) {
+        return "";
+    }
+
+    return `${codigoDeporte}:${clave}`;
+
+}
 // ========================================
 // AGREGAR FAVORITO
 // ========================================
 
-function agregarFavorito(clave) {
+function agregarFavorito(codigoDeporte, clave) {
 
-    if (!clave) return false;
+    const claveFavorito =
+        obtenerClaveFavorito(
+            codigoDeporte,
+            clave
+        );
 
-    favoritosEventos.add(clave);
+    if (!claveFavorito) return false;
+
+    favoritosEventos.add(claveFavorito);
 
     guardarFavoritosEventos();
 
     console.log(
         "⭐ Evento agregado a favoritos:",
-        clave
+        claveFavorito
     );
 
     return true;
 }
-
 
 // ========================================
 // QUITAR FAVORITO
 // ========================================
 
-function quitarFavorito(clave) {
+function quitarFavorito(codigoDeporte, clave) {
 
-    if (!clave) return false;
+    const claveFavorito =
+        obtenerClaveFavorito(
+            codigoDeporte,
+            clave
+        );
 
-    favoritosEventos.delete(clave);
+    if (!claveFavorito) return false;
+
+    favoritosEventos.delete(claveFavorito);
 
     guardarFavoritosEventos();
 
     console.log(
         "☆ Evento quitado de favoritos:",
-        clave
+        claveFavorito
     );
 
     return true;
 }
 
-
 // ========================================
 // TOGGLE FAVORITO
 // ========================================
 
-function alternarFavorito(clave) {
+function alternarFavorito(codigoDeporte, clave) {
 
-    if (
-        favoritosEventos.has(clave)
-    ) {
+    const claveFavorito =
+        obtenerClaveFavorito(
+            codigoDeporte,
+            clave
+        );
 
-        return quitarFavorito(clave);
+    if (!claveFavorito) return false;
+
+    if (favoritosEventos.has(claveFavorito)) {
+
+        return quitarFavorito(
+            codigoDeporte,
+            clave
+        );
 
     }
 
-    return agregarFavorito(clave);
+    return agregarFavorito(
+        codigoDeporte,
+        clave
+    );
 
 }
-
-
 // ========================================
 // COMPROBAR FAVORITO
 // ========================================
 
-function esFavorito(clave) {
+function esFavorito(codigoDeporte, clave) {
 
-    return favoritosEventos.has(clave);
+    const claveFavorito =
+        obtenerClaveFavorito(
+            codigoDeporte,
+            clave
+        );
+
+    return favoritosEventos.has(
+        claveFavorito
+    );
 
 }
 
@@ -1297,9 +1336,11 @@ function obtenerEventosLive() {
 
                 participantes,
 
-                favorito:
-                    favoritosEventos.has(evento.clave),
-
+               favorito:
+    esFavorito(
+        evento.codigoDeporte,
+        evento.clave
+    ),
                 estado:
                     evento.estado || "",
 
@@ -2063,6 +2104,7 @@ botonFavorito.addEventListener(
     () => {
 
         alternarFavorito(
+            evento.codigoDeporte,
             evento.clave
         );
 
@@ -2444,7 +2486,12 @@ function obtenerTodosLosFavoritos() {
 
         if (!evento?.clave) continue;
 
-        if (favoritosEventos.has(evento.clave)) {
+        if (favoritosEventos.has(
+    obtenerClaveFavorito(
+        evento.codigoDeporte,
+        evento.clave
+    )
+))) {
             mapa.set(
                 `${evento.codigoDeporte}:${evento.clave}`,
                 evento
@@ -2458,7 +2505,12 @@ function obtenerTodosLosFavoritos() {
 
         if (!evento?.clave) continue;
 
-        if (favoritosEventos.has(evento.clave)) {
+        if (favoritosEventos.has(
+    obtenerClaveFavorito(
+        evento.codigoDeporte,
+        evento.clave
+    )
+)) {
             mapa.set(
                 `${evento.codigoDeporte}:${evento.clave}`,
                 evento
