@@ -1711,6 +1711,40 @@ if (seccionActual === "favoritos") {
 
     }
 }
+
+async function probarLiveAgregado() {
+
+    const url =
+        `${API_BASE}/api/s/${CHAMP}/${LANG}/ALL/schedule/live-disc`;
+
+    console.log("🧪 Probando LIVE agregado:", url);
+
+    try {
+
+        const datos = await obtenerDatos(url);
+
+        console.log("🧪 LIVE agregado - tipo:", typeof datos);
+        console.log("🧪 LIVE agregado - es array:", Array.isArray(datos));
+        console.log("🧪 LIVE agregado - respuesta:", datos);
+
+        if (Array.isArray(datos)) {
+            console.log(
+                `🧪 LIVE agregado - cantidad: ${datos.length}`
+            );
+        }
+
+        return datos;
+
+    } catch (error) {
+
+        console.error(
+            "❌ Error en LIVE agregado:",
+            error
+        );
+
+        return null;
+    }
+}
 // ========================================
 // ACTUALIZAR AGENDA
 // ========================================
@@ -1916,9 +1950,12 @@ async function iniciarAplicacion() {
     console.log("🚀 Iniciando aplicación...");
 
     await cargarDisciplinas();
+
     await cargarTodasLasUnidades();
 
     await inicializarMotorEventos();
+
+    await probarLiveAgregado();
 
     console.log("✅ Aplicación lista");
 
