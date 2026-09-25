@@ -2088,7 +2088,7 @@ async function cargarLiveOficial() {
         try {
             const eventos = await cargarLiveOficialDisciplina(disc.Key);
 
-            for (const evento of eventos) {AA
+            for (const evento of eventos) {
                 resultados.push(evento);
             }
 
