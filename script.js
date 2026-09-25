@@ -2970,6 +2970,25 @@ document.getElementById(
     "click",
     mostrarFavoritos
 );
+const btnIndividuales =
+    document.getElementById("btnIndividuales");
+
+if (btnIndividuales) {
+
+    btnIndividuales.addEventListener("click", () => {
+
+        console.log("🏃 Botón Individuales");
+
+        seccionActual = "individuales";
+
+        document.getElementById("seccionFavoritos").hidden = true;
+        document.getElementById("seccionEquipos").hidden = true;
+        document.getElementById("seccionIndividuales").hidden = false;
+        document.getElementById("seccionLive").hidden = true;
+
+        renderIndividuales();
+    });
+}
 const btnEquipos = document.getElementById("btnEquipos");
 
 if (btnEquipos) {
