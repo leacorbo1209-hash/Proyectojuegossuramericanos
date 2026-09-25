@@ -157,6 +157,49 @@ function obtenerEventosEquipos() {
 
     return [...mapa.values()];
 }
+
+function renderEquipos() {
+
+    const contenedor = document.getElementById("eventosEquipos");
+
+    if (!contenedor) {
+        console.error("❌ No existe #eventosEquipos");
+        return;
+    }
+
+    const eventos = obtenerEventosEquipos();
+
+    contenedor.innerHTML = "";
+
+    const contador = document.getElementById("contadorEquipos");
+
+    if (contador) {
+        contador.textContent =
+            `${eventos.length} eventos de equipos`;
+    }
+
+    if (eventos.length === 0) {
+        contenedor.innerHTML = `
+            <p class="mensaje-vacio">
+                No hay eventos de equipos para mostrar.
+            </p>
+        `;
+        return;
+    }
+
+    for (const evento of eventos) {
+
+        const tarjeta = crearTarjetaEventoLive(evento);
+
+        if (tarjeta) {
+            contenedor.appendChild(tarjeta);
+        }
+    }
+
+    console.log(
+        `🏟️ Equipos renderizados: ${eventos.length}`
+    );
+}
 // ========================================
 // VARIABLES GLOBALES
 // ========================================
