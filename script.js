@@ -973,19 +973,6 @@ function obtenerTodosLosEventos() {
 
 
 // ========================================
-// OBTENER TODOS LOS EVENTOS
-// ========================================
-
-function obtenerTodosLosEventos() {
-
-    return Object.values(unidadesPorDisciplina)
-        .flat()
-        .filter(unidad => unidad?.clave);
-
-}
-
-
-// ========================================
 // COMPROBAR SI UN EVENTO ESTÁ REALMENTE LIVE
 // ========================================
 
@@ -1118,14 +1105,15 @@ function obtenerResumenEventos() {
 // BUSCAR EVENTO
 // ========================================
 
-function buscarEvento(clave) {
+function buscarEvento(codigoDeporte, clave) {
 
     return eventosActuales.find(
-        evento => evento.clave === clave
+        evento =>
+            evento.codigoDeporte === codigoDeporte &&
+            evento.clave === clave
     ) || null;
 
 }
-
 
 // ========================================
 // EVENTOS DE UNA DISCIPLINA
@@ -1444,18 +1432,6 @@ window.alternarFavorito =
 
 window.esFavorito =
     esFavorito;
-// ========================================
-// OBTENER LIVE FAVORITOS
-// ========================================
-
-function obtenerLiveFavoritos() {
-
-    return obtenerEventosLive()
-        .filter(evento =>
-            evento.favorito
-        );
-
-}
 
 
 // ========================================
@@ -1583,50 +1559,6 @@ async function cargarLiveOficial() {
     return resultados;
 }
 
-cargarLiveOficial().then(eventos => {
-    console.log("🔴 LIVE OFICIAL:", eventos.length);
-    console.table(
-        eventos.map(e => ({
-            deporte: e.deporte,
-            evento: e.eventoNombre,
-            fase: e.faseNombre,
-            unidad: e.unidadCorta,
-            estado: e.estado,
-            fecha: e.fecha,
-            home: e.participantes[0]?.nombre || "",
-            away: e.participantes[1]?.nombre || ""
-        }))
-    );
-});
-// ========================================
-// RESUMEN DEL LIVE
-// ========================================
-
-function obtenerResumenLive() {
-
-    const eventos =
-        obtenerEventosLive();
-
-    return {
-
-        total:
-            eventos.length,
-
-        favoritos:
-            eventos.filter(
-                evento =>
-                    evento.favorito
-            ).length,
-
-        otros:
-            eventos.filter(
-                evento =>
-                    !evento.favorito
-            ).length
-
-    };
-
-}
 
 
 // ========================================
@@ -1748,7 +1680,12 @@ async function actualizarResultadosLive() {
                 continue;
             }
 
-            detallesEventos[evento.clave] = {
+            detallesEventos[
+    obtenerClaveFavorito(
+        evento.codigoDeporte,
+        evento.clave
+    )
+] = {
                 Results: {
                     Result: "",
                     ResDetail: ""
@@ -1864,10 +1801,10 @@ async function actualizarAgenda() {
 // ACTUALIZAR UN EVENTO INDIVIDUAL
 // ========================================
 
-async function actualizarEventoLive(clave) {
+async function actualizarEventoLive(codigoDeporte, clave) {
 
     const evento =
-        buscarEvento(clave);
+        buscarEvento(codigoDeporte, clave);
 
     if (!evento) {
         return null;
