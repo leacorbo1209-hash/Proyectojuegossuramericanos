@@ -175,8 +175,12 @@ async function cargarDisciplinas() {
             "Error conectando con la API:",
             error
         );
+
+        disciplinas = [];
+        catalogoDisciplinas = [];
+
+        throw error;
     }
-}
 
 
 // ========================================
@@ -1900,7 +1904,7 @@ async function inicializarMotorEventos() {
     // ========================================
 
     iniciarActualizacionAutomatica(
-        10,
+        30,
         60
     );
 
@@ -1912,14 +1916,9 @@ async function iniciarAplicacion() {
     console.log("🚀 Iniciando aplicación...");
 
     await cargarDisciplinas();
-
-    await analizarDisciplinas();
-
-    await analizarEventosTodasLasDisciplinas();
-
     await cargarTodasLasUnidades();
 
-    inicializarMotorEventos();
+    await inicializarMotorEventos();
 
     console.log("✅ Aplicación lista");
 
