@@ -187,17 +187,67 @@ function renderEquipos() {
         return;
     }
 
+    // Agrupar eventos por disciplina
+    const eventosPorDeporte = new Map();
+
     for (const evento of eventos) {
 
-        const tarjeta = crearTarjetaEventoLive(evento);
+        const codigo = evento.codigoDeporte;
 
-        if (tarjeta) {
-            contenedor.appendChild(tarjeta);
+        if (!eventosPorDeporte.has(codigo)) {
+            eventosPorDeporte.set(codigo, []);
         }
+
+        eventosPorDeporte.get(codigo).push(evento);
+    }
+
+    // Recorrer las disciplinas en el orden oficial
+    for (const disciplina of disciplinas) {
+
+        const codigo = disciplina.Key;
+
+        if (!eventosPorDeporte.has(codigo)) {
+            continue;
+        }
+
+        const eventosDelDeporte =
+            eventosPorDeporte.get(codigo);
+
+        const seccion = document.createElement("section");
+
+        seccion.className = "sport-section";
+
+        seccion.innerHTML = `
+            <div class="section-title">
+                <span>🏟️</span>
+                <h2>${disciplina.Desc}</h2>
+            </div>
+
+            <div class="events-grid"></div>
+        `;
+
+        const grid =
+            seccion.querySelector(".events-grid");
+
+        for (const evento of eventosDelDeporte) {
+
+            const tarjeta =
+                crearTarjetaEventoLive(evento);
+
+            if (tarjeta) {
+                grid.appendChild(tarjeta);
+            }
+        }
+
+        contenedor.appendChild(seccion);
     }
 
     console.log(
         `🏟️ Equipos renderizados: ${eventos.length}`
+    );
+
+    console.log(
+        `🏟️ Deportes de equipo mostrados: ${eventosPorDeporte.size}`
     );
 }
 // ========================================
