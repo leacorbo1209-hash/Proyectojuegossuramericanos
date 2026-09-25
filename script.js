@@ -1432,21 +1432,9 @@ window.alternarFavorito =
 
 window.esFavorito =
     esFavorito;
-
-
-// ========================================
-// OBTENER LIVE NO FAVORITOS
-// ========================================
-
-function obtenerLiveNoFavoritos() {
-
-    return obtenerEventosLive()
-        .filter(evento =>
-            !evento.favorito
-        );
-
-}
-
+//=================================
+// CARGAR LIVE OFICIAL DISCIPLINA
+///////////////////////////////////
 async function cargarLiveOficialDisciplina(disc) {
     const url =
         `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/schedule/live-now`;
@@ -1560,37 +1548,6 @@ async function cargarLiveOficial() {
 }
 
 
-
-// ========================================
-// EXPONER FUNCIONES
-// ========================================
-
-window.favoritosEventos =
-    favoritosEventos;
-
-window.obtenerEventosLive =
-    obtenerEventosLive;
-
-window.obtenerLiveFavoritos =
-    obtenerLiveFavoritos;
-
-window.obtenerLiveNoFavoritos =
-    obtenerLiveNoFavoritos;
-
-window.obtenerResumenLive =
-    obtenerResumenLive;
-
-window.agregarFavorito =
-    agregarFavorito;
-
-window.quitarFavorito =
-    quitarFavorito;
-
-window.alternarFavorito =
-    alternarFavorito;
-
-window.esFavorito =
-    esFavorito;
 
 // ========================================
 // RESULTADO SILENCIOSO
@@ -1820,11 +1777,17 @@ async function actualizarEventoLive(codigoDeporte, clave) {
             evento.resCode
         );
 
-    detallesEventos[clave] =
-        resultado;
+const claveCompuesta =
+    obtenerClaveFavorito(
+        codigoDeporte,
+        clave
+    );
 
-    firmasResultadosLive[clave] =
-        crearFirmaResultado(resultado);
+detallesEventos[claveCompuesta] =
+    resultado;
+
+firmasResultadosLive[claveCompuesta] =
+    crearFirmaResultado(resultado);
 
     window.detallesEventos =
         detallesEventos;
@@ -1976,7 +1939,11 @@ function crearTarjetaEventoLive(evento) {
         "evento-live-card" +
         (evento.favorito ? " favorito" : "");
 
-    tarjeta.dataset.clave = evento.clave;
+    tarjeta.dataset.clave =
+    obtenerClaveFavorito(
+        evento.codigoDeporte,
+        evento.clave
+    );
 
 
     // ========================================
