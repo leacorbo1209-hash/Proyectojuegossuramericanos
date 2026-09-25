@@ -2491,7 +2491,7 @@ function obtenerTodosLosFavoritos() {
         evento.codigoDeporte,
         evento.clave
     )
-))) {
+)) {
             mapa.set(
                 `${evento.codigoDeporte}:${evento.clave}`,
                 evento
