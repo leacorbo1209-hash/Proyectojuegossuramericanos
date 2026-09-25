@@ -384,6 +384,110 @@ function renderEquipos() {
         return;
     }
 
+    function obtenerMedallero() {
+    const medallero = new Map();
+
+    function asegurarPais(pais, nombre) {
+        if (!pais) return;
+
+        if (!medallero.has(pais)) {
+            medallero.set(pais, {
+                pais: pais,
+                nombre: nombre || pais,
+                oro: 0,
+                plata: 0,
+                bronce: 0,
+                total: 0
+            });
+        }
+    }
+
+    function agregarMedalla(pais, nombre, tipo) {
+        if (!pais) return;
+
+        asegurarPais(pais, nombre);
+
+        const registro = medallero.get(pais);
+
+        if (tipo === "oro") {
+            registro.oro++;
+        }
+
+        if (tipo === "plata") {
+            registro.plata++;
+        }
+
+        if (tipo === "bronce") {
+            registro.bronce++;
+        }
+
+        registro.total =
+            registro.oro +
+            registro.plata +
+            registro.bronce;
+    }
+
+    const eventosMedalla = eventosActuales.filter(evento =>
+        evento &&
+        evento.estado === "OFFICIAL" &&
+        evento.esEnfrentamiento === true &&
+        Array.isArray(evento.participantes) &&
+        (
+            evento.unidadNombre.includes("Gold Medal Match") ||
+            evento.unidadNombre.includes("Bronze Medal Match")
+        )
+    );
+
+    for (const evento of eventosMedalla) {
+
+        const participantes = evento.participantes;
+
+        if (participantes.length < 2) {
+            continue;
+        }
+
+        const ganador = participantes.find(p => p.ganador === true);
+        const perdedor = participantes.find(p => p.ganador !== true);
+
+        if (!ganador) {
+            continue;
+        }
+
+        if (evento.unidadNombre.includes("Gold Medal Match")) {
+
+            // Ganador del partido por el oro
+            agregarMedalla(
+                ganador.pais,
+                ganador.nombre,
+                "oro"
+            );
+
+            // Perdedor del partido por el oro
+            if (perdedor) {
+                agregarMedalla(
+                    perdedor.pais,
+                    perdedor.nombre,
+                    "plata"
+                );
+            }
+        }
+
+        if (evento.unidadNombre.includes("Bronze Medal Match")) {
+
+            // Ganador del partido por el bronce
+            agregarMedalla(
+                ganador.pais,
+                ganador.nombre,
+                "bronce"
+            );
+        }
+    }
+
+    return Array.from(medallero.values());
+}
+    const medalleroPrueba = obtenerMedallero();
+
+console.table(medalleroPrueba);
     // Agrupar eventos por disciplina
     const eventosPorDeporte = new Map();
 
