@@ -181,7 +181,7 @@ async function cargarDisciplinas() {
 
         throw error;
     }
-
+}
 
 // ========================================
 // ANALIZAR LAS 60 DISCIPLINAS
