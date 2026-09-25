@@ -90,75 +90,115 @@ async function obtenerDatos(url) {
 
     return JSON.parse(json);
 }
-// ====================
-// MEDALLAS
-// ====================
+//==========================
+//MEDALLERO
+//=========================
 function obtenerMedallero() {
-
-    const todosLosEventos = [
-        ...eventosActuales,
-        ...eventosEnVivo
-    ];
-
     const medallero = new Map();
 
-    for (const evento of todosLosEventos) {
+    function asegurarPais(pais, nombre) {
+        if (!pais) return;
 
-        if (!evento) continue;
-
-        const medalla =
-            evento.medalla;
-
-        if (!medalla) continue;
-
-        const participantes =
-            Array.isArray(evento.participantes)
-                ? evento.participantes
-                : [];
-
-        for (const participante of participantes) {
-
-            const pais = participante.pais;
-
-            if (!pais) continue;
-
-            if (!medallero.has(pais)) {
-                medallero.set(pais, {
-                    oro: 0,
-                    plata: 0,
-                    bronce: 0
-                });
-            }
-
-            const registro =
-                medallero.get(pais);
-
-            const tipoMedalla =
-                String(medalla).toUpperCase();
-
-            if (tipoMedalla.includes("GOLD") ||
-                tipoMedalla.includes("ORO")) {
-
-                registro.oro++;
-
-            } else if (
-                tipoMedalla.includes("SILVER") ||
-                tipoMedalla.includes("PLATA")
-            ) {
-
-                registro.plata++;
-
-            } else if (
-                tipoMedalla.includes("BRONZE") ||
-                tipoMedalla.includes("BRONCE")
-            ) {
-
-                registro.bronce++;
-            }
+        if (!medallero.has(pais)) {
+            medallero.set(pais, {
+                pais: pais,
+                nombre: nombre || pais,
+                oro: 0,
+                plata: 0,
+                bronce: 0,
+                total: 0
+            });
         }
     }
 
-    return medallero;
+    function agregarMedalla(pais, nombre, tipo) {
+        if (!pais) return;
+
+        asegurarPais(pais, nombre);
+
+        const registro = medallero.get(pais);
+
+        if (tipo === "oro") {
+            registro.oro++;
+        }
+
+        if (tipo === "plata") {
+            registro.plata++;
+        }
+
+        if (tipo === "bronce") {
+            registro.bronce++;
+        }
+
+        registro.total =
+            registro.oro +
+            registro.plata +
+            registro.bronce;
+    }
+
+    const eventosMedalla = eventosActuales.filter(evento =>
+        evento &&
+        evento.estado === "OFFICIAL" &&
+        evento.esEnfrentamiento === true &&
+        Array.isArray(evento.participantes) &&
+        (
+            evento.unidadNombre.includes("Gold Medal Match") ||
+            evento.unidadNombre.includes("Bronze Medal Match")
+        )
+    );
+
+    for (const evento of eventosMedalla) {
+
+        const participantes = evento.participantes;
+
+        if (participantes.length < 2) {
+            continue;
+        }
+
+        const ganador =
+            participantes.find(p => p.ganador === true);
+
+        const perdedor =
+            participantes.find(p => p.ganador !== true);
+
+        if (!ganador) {
+            continue;
+        }
+
+        if (
+            evento.unidadNombre.includes(
+                "Gold Medal Match"
+            )
+        ) {
+            agregarMedalla(
+                ganador.pais,
+                ganador.nombre,
+                "oro"
+            );
+
+            if (perdedor) {
+                agregarMedalla(
+                    perdedor.pais,
+                    perdedor.nombre,
+                    "plata"
+                );
+            }
+        }
+
+        if (
+            evento.unidadNombre.includes(
+                "Bronze Medal Match"
+            )
+        ) {
+            agregarMedalla(
+                ganador.pais,
+                ganador.nombre,
+                "bronce"
+            );
+        }
+    }
+
+    return Array.from(medallero.values());
 }
 // ========================================
 // DISCIPLINAS
