@@ -90,8 +90,76 @@ async function obtenerDatos(url) {
 
     return JSON.parse(json);
 }
+// ====================
+// MEDALLAS
+// ====================
+function obtenerMedallero() {
 
+    const todosLosEventos = [
+        ...eventosActuales,
+        ...eventosEnVivo
+    ];
 
+    const medallero = new Map();
+
+    for (const evento of todosLosEventos) {
+
+        if (!evento) continue;
+
+        const medalla =
+            evento.medalla;
+
+        if (!medalla) continue;
+
+        const participantes =
+            Array.isArray(evento.participantes)
+                ? evento.participantes
+                : [];
+
+        for (const participante of participantes) {
+
+            const pais = participante.pais;
+
+            if (!pais) continue;
+
+            if (!medallero.has(pais)) {
+                medallero.set(pais, {
+                    oro: 0,
+                    plata: 0,
+                    bronce: 0
+                });
+            }
+
+            const registro =
+                medallero.get(pais);
+
+            const tipoMedalla =
+                String(medalla).toUpperCase();
+
+            if (tipoMedalla.includes("GOLD") ||
+                tipoMedalla.includes("ORO")) {
+
+                registro.oro++;
+
+            } else if (
+                tipoMedalla.includes("SILVER") ||
+                tipoMedalla.includes("PLATA")
+            ) {
+
+                registro.plata++;
+
+            } else if (
+                tipoMedalla.includes("BRONZE") ||
+                tipoMedalla.includes("BRONCE")
+            ) {
+
+                registro.bronce++;
+            }
+        }
+    }
+
+    return medallero;
+}
 // ========================================
 // DISCIPLINAS
 // ========================================
