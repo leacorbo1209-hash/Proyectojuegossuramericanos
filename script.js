@@ -3156,6 +3156,26 @@ if (btnEquipos) {
         renderEquipos();
     });
 }
+const btnPaises =
+    document.getElementById("btnPaises");
+
+if (btnPaises) {
+
+    btnPaises.addEventListener("click", () => {
+
+        console.log("🌎 Botón Países");
+
+        seccionActual = "paises";
+
+        document.getElementById("seccionFavoritos").hidden = true;
+        document.getElementById("seccionEquipos").hidden = true;
+        document.getElementById("seccionIndividuales").hidden = true;
+        document.getElementById("seccionPaises").hidden = false;
+        document.getElementById("seccionLive").hidden = true;
+
+        renderPaises();
+    });
+}
 // ========================================
 // BOTÓN JUEGOS SURAMERICANOS → INICIO
 // ========================================
