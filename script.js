@@ -1,5 +1,6 @@
+
 // ========================================
-// MODO CLARO / OSCUROO
+// MODO CLARO / OSCURO
 // ========================================
 
 const themeButton = document.getElementById("themeButton");
@@ -90,25 +91,32 @@ async function obtenerDatos(url) {
 
     return JSON.parse(json);
 }
-//==========================
-//MEDALLERO
-//=========================
+
+const NOMBRES_PAISES = {
+    ARG: "Argentina",
+    BOL: "Bolivia",
+    BRA: "Brasil",
+    CHI: "Chile",
+    COL: "Colombia",
+    ECU: "Ecuador",
+    PAN: "Panamá",
+    PAR: "Paraguay",
+    PER: "Perú",
+    URU: "Uruguay",
+    VEN: "Venezuela"
+};
+
+// ========================================
+// MEDALLERO (a partir de finales cargados en agenda)
+// ========================================
+// NOTA: esta es la ÚNICA versión de obtenerMedallero().
+// Antes existían tres copias distintas de esta función:
+// una acá arriba, y dos más pegadas por error dentro del
+// cuerpo de renderEquipos(). Eso hacía que, según qué parte
+// del archivo se hubiera cargado último, "obtenerMedallero"
+// se comportara distinto en la consola. Se dejó una sola.
 function obtenerMedallero() {
     const medallero = new Map();
-
-    const nombresPaises = {
-        ARG: "Argentina",
-        BOL: "Bolivia",
-        BRA: "Brasil",
-        CHI: "Chile",
-        COL: "Colombia",
-        ECU: "Ecuador",
-        PAN: "Panamá",
-        PAR: "Paraguay",
-        PER: "Perú",
-        URU: "Uruguay",
-        VEN: "Venezuela"
-    };
 
     function asegurarPais(pais) {
         if (!pais) return;
@@ -116,7 +124,7 @@ function obtenerMedallero() {
         if (!medallero.has(pais)) {
             medallero.set(pais, {
                 pais: pais,
-                nombre: nombresPaises[pais] || pais,
+                nombre: NOMBRES_PAISES[pais] || pais,
                 oro: 0,
                 plata: 0,
                 bronce: 0,
@@ -155,6 +163,7 @@ function obtenerMedallero() {
         evento.estado === "OFFICIAL" &&
         evento.esEnfrentamiento === true &&
         Array.isArray(evento.participantes) &&
+        evento.unidadNombre &&
         (
             evento.unidadNombre.includes("Gold Medal Match") ||
             evento.unidadNombre.includes("Bronze Medal Match")
@@ -179,34 +188,149 @@ function obtenerMedallero() {
             continue;
         }
 
-        if (
-            evento.unidadNombre.includes("Gold Medal Match")
-        ) {
-            agregarMedalla(
-                ganador.pais,
-                "oro"
-            );
+        if (evento.unidadNombre.includes("Gold Medal Match")) {
+
+            agregarMedalla(ganador.pais, "oro");
 
             if (perdedor) {
-                agregarMedalla(
-                    perdedor.pais,
-                    "plata"
-                );
+                agregarMedalla(perdedor.pais, "plata");
             }
         }
 
-        if (
-            evento.unidadNombre.includes("Bronze Medal Match")
-        ) {
-            agregarMedalla(
-                ganador.pais,
-                "bronce"
-            );
+        if (evento.unidadNombre.includes("Bronze Medal Match")) {
+
+            agregarMedalla(ganador.pais, "bronce");
         }
     }
 
-    return Array.from(medallero.values());
+    return Array.from(medallero.values())
+        .sort((a, b) => {
+            if (b.oro !== a.oro) return b.oro - a.oro;
+            if (b.plata !== a.plata) return b.plata - a.plata;
+            return b.bronce - a.bronce;
+        });
 }
+
+// ========================================
+// MEDALLERO COMPLETO (consulta resultado x resultado)
+// ========================================
+// NOTA: esta función estaba anidada dentro de renderEquipos(),
+// por eso no existía en el ámbito global y la consola tiraba
+// "obtenerMedalleroCompleto is not defined". Ahora es una
+// función de nivel superior como el resto.
+//
+// IMPORTANTE: esta función puede llegar a hacer miles de
+// requests secuenciales (una por cada evento oficial con
+// resultado). Con ~2700 eventos, tarda mucho y compite por
+// red con los setInterval de LIVE/agenda que corren en
+// paralelo. Úsala solo cuando realmente la necesites (por
+// ejemplo al final del torneo), no como reemplazo de
+// obtenerMedallero().
+async function obtenerMedalleroCompleto() {
+    const medallero = new Map();
+    const errores = [];
+
+    function asegurarPais(pais) {
+        if (!pais) return;
+
+        if (!medallero.has(pais)) {
+            medallero.set(pais, {
+                pais: pais,
+                oro: 0,
+                plata: 0,
+                bronce: 0,
+                total: 0
+            });
+        }
+    }
+
+    function agregarMedalla(pais, tipo) {
+        if (!pais) return;
+
+        asegurarPais(pais);
+
+        const registro = medallero.get(pais);
+
+        if (tipo === "ME_GOLD") registro.oro++;
+        if (tipo === "ME_SILVER") registro.plata++;
+        if (tipo === "ME_BRONZE") registro.bronce++;
+
+        registro.total =
+            registro.oro +
+            registro.plata +
+            registro.bronce;
+    }
+
+    const eventosConResultados =
+        eventosActuales.filter(evento =>
+            evento &&
+            evento.estado === "OFFICIAL" &&
+            evento.mostrarResultados === true &&
+            evento.resCode &&
+            evento.codigoDeporte
+        );
+
+    for (const evento of eventosConResultados) {
+
+        try {
+
+            const resultado =
+                await obtenerResultadoSilencioso(
+                    evento.codigoDeporte,
+                    evento.resCode
+                );
+
+            const competidores =
+                resultado?.Competitors || [];
+
+            for (const competidor of competidores) {
+
+                const medalla =
+                    String(competidor.Medal || "").toUpperCase();
+
+                if (
+                    medalla === "ME_GOLD" ||
+                    medalla === "ME_SILVER" ||
+                    medalla === "ME_BRONZE"
+                ) {
+                    agregarMedalla(competidor.Org, medalla);
+                }
+            }
+
+        } catch (error) {
+
+            errores.push({
+                deporte: evento.codigoDeporte,
+                evento: evento.eventoNombre,
+                resCode: evento.resCode,
+                error: error.message
+            });
+        }
+    }
+
+    const resultado =
+        Array.from(medallero.values())
+            .map(pais => ({
+                ...pais,
+                nombre: NOMBRES_PAISES[pais.pais] || pais.pais
+            }))
+            .sort((a, b) => {
+                if (b.oro !== a.oro) return b.oro - a.oro;
+                if (b.plata !== a.plata) return b.plata - a.plata;
+                return b.bronce - a.bronce;
+            });
+
+    window.erroresMedallero = errores;
+
+    console.log(
+        `🏅 Medallero completo: ${resultado.length} países, ` +
+        `${errores.length} eventos con error`
+    );
+
+    return resultado;
+}
+
+
 // ========================================
 // DISCIPLINAS
 // ========================================
@@ -236,6 +360,7 @@ function esDisciplinaDeEquipo(codigo) {
 function esDisciplinaIndividual(codigo) {
     return !esDisciplinaDeEquipo(codigo);
 }
+
 function obtenerEventosIndividuales() {
 
     const todosLosEventos = [
@@ -271,6 +396,7 @@ function obtenerEventosIndividuales() {
 
     return [...mapa.values()];
 }
+
 function renderIndividuales() {
 
     const contenedor =
@@ -357,15 +483,8 @@ function renderIndividuales() {
 
         contenedor.appendChild(seccion);
     }
-
-    console.log(
-        `🏃 Individuales renderizados: ${eventos.length}`
-    );
-
-    console.log(
-        `🏃 Deportes individuales mostrados: ${eventosPorDeporte.size}`
-    );
 }
+
 function obtenerEventosEquipos() {
 
     const todosLosEventos = [
@@ -402,6 +521,16 @@ function obtenerEventosEquipos() {
     return [...mapa.values()];
 }
 
+// ========================================
+// RENDER EQUIPOS
+// ========================================
+// NOTA: esta función antes tenía, pegadas en el medio de su
+// cuerpo, dos definiciones completas de funciones distintas
+// (obtenerMedallero y obtenerMedalleroCompleto) más una llamada
+// suelta a obtenerMedallero() con un console.table(). Nada de
+// eso tiene que ver con renderizar eventos de equipos, así que
+// se sacó todo. renderEquipos() ahora solo agrupa y dibuja las
+// tarjetas de los eventos de disciplinas de equipo.
 function renderEquipos() {
 
     const contenedor = document.getElementById("eventosEquipos");
@@ -431,258 +560,6 @@ function renderEquipos() {
         return;
     }
 
-    function obtenerMedallero() {
-    const medallero = new Map();
-
-    function asegurarPais(pais, nombre) {
-        if (!pais) return;
-
-        if (!medallero.has(pais)) {
-            medallero.set(pais, {
-                pais: pais,
-                nombre: nombre || pais,
-                oro: 0,
-                plata: 0,
-                bronce: 0,
-                total: 0
-            });
-        }
-    }
-async function obtenerMedalleroCompleto() {
-    const medallero = new Map();
-    const errores = [];
-
-    function asegurarPais(pais) {
-        if (!pais) return;
-
-        if (!medallero.has(pais)) {
-            medallero.set(pais, {
-                pais: pais,
-                oro: 0,
-                plata: 0,
-                bronce: 0,
-                total: 0
-            });
-        }
-    }
-
-    function agregarMedalla(pais, tipo) {
-        if (!pais) return;
-
-        asegurarPais(pais);
-
-        const registro = medallero.get(pais);
-
-        if (tipo === "ME_GOLD") {
-            registro.oro++;
-        }
-
-        if (tipo === "ME_SILVER") {
-            registro.plata++;
-        }
-
-        if (tipo === "ME_BRONZE") {
-            registro.bronce++;
-        }
-
-        registro.total =
-            registro.oro +
-            registro.plata +
-            registro.bronce;
-    }
-
-    const eventosConResultados =
-        eventosActuales.filter(evento =>
-            evento &&
-            evento.estado === "OFFICIAL" &&
-            evento.mostrarResultados === true &&
-            evento.resCode &&
-            evento.codigoDeporte
-        );
-
-    console.log(
-        "Eventos oficiales con resultados:",
-        eventosConResultados.length
-    );
-
-    for (const evento of eventosConResultados) {
-
-        try {
-
-            const resultado =
-                await obtenerResultadoSilencioso(
-                    evento.codigoDeporte,
-                    evento.resCode
-                );
-
-            const competidores =
-                resultado?.Competitors || [];
-
-            for (const competidor of competidores) {
-
-                const medalla =
-                    String(
-                        competidor.Medal || ""
-                    ).toUpperCase();
-
-                if (
-                    medalla === "ME_GOLD" ||
-                    medalla === "ME_SILVER" ||
-                    medalla === "ME_BRONZE"
-                ) {
-                    agregarMedalla(
-                        competidor.Org,
-                        medalla
-                    );
-                }
-            }
-
-        } catch (error) {
-
-            errores.push({
-                deporte: evento.codigoDeporte,
-                evento: evento.eventoNombre,
-                resCode: evento.resCode,
-                error: error.message
-            });
-
-        }
-    }
-
-    const nombresPaises = {
-        ARG: "Argentina",
-        BOL: "Bolivia",
-        BRA: "Brasil",
-        CHI: "Chile",
-        COL: "Colombia",
-        ECU: "Ecuador",
-        PAN: "Panamá",
-        PAR: "Paraguay",
-        PER: "Perú",
-        URU: "Uruguay",
-        VEN: "Venezuela"
-    };
-
-    const resultado =
-        Array.from(medallero.values())
-            .map(pais => ({
-                ...pais,
-                nombre:
-                    nombresPaises[pais.pais] ||
-                    pais.pais
-            }))
-            .sort((a, b) => {
-                if (b.oro !== a.oro) {
-                    return b.oro - a.oro;
-                }
-
-                if (b.plata !== a.plata) {
-                    return b.plata - a.plata;
-                }
-
-                return b.bronce - a.bronce;
-            });
-
-    window.erroresMedallero = errores;
-
-    console.log(
-        "🏅 Medallero completo calculado:",
-        resultado
-    );
-
-    console.log(
-        "⚠️ Errores:",
-        errores.length
-    );
-
-    return resultado;
-}
-    function agregarMedalla(pais, nombre, tipo) {
-        if (!pais) return;
-
-        asegurarPais(pais, nombre);
-
-        const registro = medallero.get(pais);
-
-        if (tipo === "oro") {
-            registro.oro++;
-        }
-
-        if (tipo === "plata") {
-            registro.plata++;
-        }
-
-        if (tipo === "bronce") {
-            registro.bronce++;
-        }
-
-        registro.total =
-            registro.oro +
-            registro.plata +
-            registro.bronce;
-    }
-
-    const eventosMedalla = eventosActuales.filter(evento =>
-        evento &&
-        evento.estado === "OFFICIAL" &&
-        evento.esEnfrentamiento === true &&
-        Array.isArray(evento.participantes) &&
-        (
-            evento.unidadNombre.includes("Gold Medal Match") ||
-            evento.unidadNombre.includes("Bronze Medal Match")
-        )
-    );
-
-    for (const evento of eventosMedalla) {
-
-        const participantes = evento.participantes;
-
-        if (participantes.length < 2) {
-            continue;
-        }
-
-        const ganador = participantes.find(p => p.ganador === true);
-        const perdedor = participantes.find(p => p.ganador !== true);
-
-        if (!ganador) {
-            continue;
-        }
-
-        if (evento.unidadNombre.includes("Gold Medal Match")) {
-
-            // Ganador del partido por el oro
-            agregarMedalla(
-                ganador.pais,
-                ganador.nombre,
-                "oro"
-            );
-
-            // Perdedor del partido por el oro
-            if (perdedor) {
-                agregarMedalla(
-                    perdedor.pais,
-                    perdedor.nombre,
-                    "plata"
-                );
-            }
-        }
-
-        if (evento.unidadNombre.includes("Bronze Medal Match")) {
-
-            // Ganador del partido por el bronce
-            agregarMedalla(
-                ganador.pais,
-                ganador.nombre,
-                "bronce"
-            );
-        }
-    }
-
-    return Array.from(medallero.values());
-}
-    const medalleroPrueba = obtenerMedallero();
-
-console.table(medalleroPrueba);
     // Agrupar eventos por disciplina
     const eventosPorDeporte = new Map();
 
@@ -737,15 +614,8 @@ console.table(medalleroPrueba);
 
         contenedor.appendChild(seccion);
     }
-
-    console.log(
-        `🏟️ Equipos renderizados: ${eventos.length}`
-    );
-
-    console.log(
-        `🏟️ Deportes de equipo mostrados: ${eventosPorDeporte.size}`
-    );
 }
+
 function obtenerEventosPaises() {
 
     const todosLosEventos = [
@@ -796,6 +666,7 @@ function obtenerEventosPaises() {
 
     return resultado;
 }
+
 function renderPaises() {
 
     const contenedor =
@@ -887,15 +758,8 @@ function renderPaises() {
 
         contenedor.appendChild(seccion);
     }
-
-    console.log(
-        `🌎 Países renderizados: ${paises.size}`
-    );
-
-    console.log(
-        `🌎 Eventos distribuidos entre países`
-    );
 }
+
 // ========================================
 // VARIABLES GLOBALES
 // ========================================
@@ -937,29 +801,8 @@ async function cargarDisciplinas() {
                 );
 
         // Hacerlas accesibles desde la consola
-        window.disciplinas =
-            disciplinas;
-
-        window.catalogoDisciplinas =
-            catalogoDisciplinas;
-
-
-        console.log(
-            "API conectada correctamente."
-        );
-
-        console.log(
-            "Cantidad de disciplinas:",
-            disciplinas.length
-        );
-
-        console.log(
-            "Catálogo de disciplinas:"
-        );
-
-        console.table(
-            catalogoDisciplinas
-        );
+        window.disciplinas = disciplinas;
+        window.catalogoDisciplinas = catalogoDisciplinas;
 
     } catch (error) {
 
@@ -976,7 +819,7 @@ async function cargarDisciplinas() {
 }
 
 // ========================================
-// ANALIZAR LAS 60 DISCIPLINAS
+// ANALIZAR LAS 60 DISCIPLINAS (uso manual / diagnóstico)
 // ========================================
 
 async function analizarDisciplinas() {
@@ -1016,17 +859,13 @@ async function analizarDisciplinas() {
 
     window.analisisDisciplinas = resultados;
 
-    console.log(
-        "Análisis real de las 60 disciplinas:"
-    );
-
     console.table(resultados);
 
     return resultados;
 }
 
 // ========================================
-// EVENTOS Y UNIDADES DE LAS 60 DISCIPLINAS
+// EVENTOS Y UNIDADES DE LAS 60 DISCIPLINAS (uso manual / diagnóstico)
 // ========================================
 
 async function analizarEventosTodasLasDisciplinas() {
@@ -1079,16 +918,9 @@ async function analizarEventosTodasLasDisciplinas() {
         }
     }
 
-    window.analisisEventos =
-        resultados;
+    window.analisisEventos = resultados;
 
-    console.log(
-        "Análisis de eventos y unidades:"
-    );
-
-    console.table(
-        resultados
-    );
+    console.table(resultados);
 
     return resultados;
 }
@@ -1231,13 +1063,9 @@ async function cargarTodasLasUnidades() {
         try {
 
             const unidades =
-                await cargarUnidadesDisciplina(
-                    disc.Key
-                );
+                await cargarUnidadesDisciplina(disc.Key);
 
-            // Guardamos normalmente
-            unidadesPorDisciplina[disc.Key] =
-                unidades;
+            unidadesPorDisciplina[disc.Key] = unidades;
 
         } catch (error) {
 
@@ -1255,78 +1083,46 @@ async function cargarTodasLasUnidades() {
             /*
              * IMPORTANTE:
              *
-             * Si esta disciplina ya tenía datos
-             * cargados anteriormente, NO los
-             * eliminamos.
-             *
-             * Así un fallo temporal del servidor
-             * no hace desaparecer eventos.
+             * Si esta disciplina ya tenía datos cargados
+             * anteriormente, NO los eliminamos. Así un
+             * fallo temporal del servidor no hace
+             * desaparecer eventos.
              */
-
-            if (
-                !unidadesPorDisciplina[disc.Key]
-            ) {
-
-                unidadesPorDisciplina[disc.Key] =
-                    [];
-
+            if (!unidadesPorDisciplina[disc.Key]) {
+                unidadesPorDisciplina[disc.Key] = [];
             }
-
         }
-
     }
 
-
-    // ========================================
-    // EXPONER DATOS
-    // ========================================
-
-    window.unidadesPorDisciplina =
-        unidadesPorDisciplina;
-
-    window.erroresCargaUnidades =
-        errores;
-
-
-    console.log(
-        "📦 Unidades de las 60 disciplinas procesadas."
-    );
-
-    console.log(
-        "Disciplinas cargadas:",
-        Object.keys(
-            unidadesPorDisciplina
-        ).length
-    );
-
+    window.unidadesPorDisciplina = unidadesPorDisciplina;
+    window.erroresCargaUnidades = errores;
 
     if (errores.length > 0) {
-
         console.warn(
             `⚠️ Disciplinas con errores: ${errores.length}`,
             errores
         );
-
-    } else {
-
-        console.log(
-            "✅ Todas las disciplinas se actualizaron correctamente."
-        );
-
     }
-
 
     return unidadesPorDisciplina;
 }
+
 // ========================================
 // FÚTBOL — RESULTADOS COMPLETOS
 // ========================================
 
 async function obtenerResultado(disc, resCode) {
+
+    if (!disc || !resCode) {
+        // Antes esto generaba URLs del tipo
+        // ".../undefined/results/undefined" y un 404 silencioso.
+        throw new Error(
+            "obtenerResultado: falta 'disc' o 'resCode'"
+        );
+    }
+
     const url =
         `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/results/${resCode}`;
-
-    console.log("RESULTADO:", url);
 
     return await obtenerDatos(url);
 }
@@ -1844,31 +1640,17 @@ function clasificarEventos() {
         });
 
 
-    window.eventosActuales =
-        eventosActuales;
-
-    window.eventosEnVivo =
-        eventosEnVivo;
-
-    window.eventosProximos =
-        eventosProximos;
-
-    window.eventosFinalizados =
-        eventosFinalizados;
+    window.eventosActuales = eventosActuales;
+    window.eventosEnVivo = eventosEnVivo;
+    window.eventosProximos = eventosProximos;
+    window.eventosFinalizados = eventosFinalizados;
 
 
     return {
-        todos:
-            eventosActuales,
-
-        enVivo:
-            eventosEnVivo,
-
-        proximos:
-            eventosProximos,
-
-        finalizados:
-            eventosFinalizados
+        todos: eventosActuales,
+        enVivo: eventosEnVivo,
+        proximos: eventosProximos,
+        finalizados: eventosFinalizados
     };
 
 }
@@ -1881,17 +1663,10 @@ function clasificarEventos() {
 function obtenerResumenEventos() {
 
     return {
-        total:
-            eventosActuales.length,
-
-        enVivo:
-            eventosEnVivo.length,
-
-        proximos:
-            eventosProximos.length,
-
-        finalizados:
-            eventosFinalizados.length
+        total: eventosActuales.length,
+        enVivo: eventosEnVivo.length,
+        proximos: eventosProximos.length,
+        finalizados: eventosFinalizados.length
     };
 
 }
@@ -1985,6 +1760,7 @@ function guardarFavoritosEventos() {
     );
 
 }
+
 // ==========================================
 // Obtener clave favoritos
 // ==========================================
@@ -1998,6 +1774,7 @@ function obtenerClaveFavorito(codigoDeporte, clave) {
     return `${codigoDeporte}:${clave}`;
 
 }
+
 // ========================================
 // AGREGAR FAVORITO
 // ========================================
@@ -2015,11 +1792,6 @@ function agregarFavorito(codigoDeporte, clave) {
     favoritosEventos.add(claveFavorito);
 
     guardarFavoritosEventos();
-
-    console.log(
-        "⭐ Evento agregado a favoritos:",
-        claveFavorito
-    );
 
     return true;
 }
@@ -2041,11 +1813,6 @@ function quitarFavorito(codigoDeporte, clave) {
     favoritosEventos.delete(claveFavorito);
 
     guardarFavoritosEventos();
-
-    console.log(
-        "☆ Evento quitado de favoritos:",
-        claveFavorito
-    );
 
     return true;
 }
@@ -2079,6 +1846,7 @@ function alternarFavorito(codigoDeporte, clave) {
     );
 
 }
+
 // ========================================
 // COMPROBAR FAVORITO
 // ========================================
@@ -2120,11 +1888,12 @@ function obtenerEventosLive() {
 
                 participantes,
 
-               favorito:
-    esFavorito(
-        evento.codigoDeporte,
-        evento.clave
-    ),
+                favorito:
+                    esFavorito(
+                        evento.codigoDeporte,
+                        evento.clave
+                    ),
+
                 estado:
                     evento.estado || "",
 
@@ -2202,36 +1971,29 @@ function obtenerResumenLive() {
 // EXPONER FUNCIONES
 // ========================================
 
-window.favoritosEventos =
-    favoritosEventos;
+window.favoritosEventos = favoritosEventos;
+window.obtenerEventosLive = obtenerEventosLive;
+window.obtenerLiveFavoritos = obtenerLiveFavoritos;
+window.obtenerLiveNoFavoritos = obtenerLiveNoFavoritos;
+window.obtenerResumenLive = obtenerResumenLive;
+window.agregarFavorito = agregarFavorito;
+window.quitarFavorito = quitarFavorito;
+window.alternarFavorito = alternarFavorito;
+window.esFavorito = esFavorito;
+window.obtenerMedallero = obtenerMedallero;
+window.obtenerMedalleroCompleto = obtenerMedalleroCompleto;
 
-window.obtenerEventosLive =
-    obtenerEventosLive;
-
-window.obtenerLiveFavoritos =
-    obtenerLiveFavoritos;
-
-window.obtenerLiveNoFavoritos =
-    obtenerLiveNoFavoritos;
-
-window.obtenerResumenLive =
-    obtenerResumenLive;
-
-window.agregarFavorito =
-    agregarFavorito;
-
-window.quitarFavorito =
-    quitarFavorito;
-
-window.alternarFavorito =
-    alternarFavorito;
-
-window.esFavorito =
-    esFavorito;
 //=================================
 // CARGAR LIVE OFICIAL DISCIPLINA
-///////////////////////////////////
+//=================================
 async function cargarLiveOficialDisciplina(disc) {
+
+    if (!disc) {
+        // Evita construir una URL con "undefined" en el
+        // código de disciplina.
+        return [];
+    }
+
     const url =
         `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/schedule/live-now`;
 
@@ -2317,10 +2079,16 @@ async function cargarLiveOficial() {
     const errores = [];
 
     for (const disc of disciplinas) {
+
+        if (!disc?.Key) {
+            // Evita disparar un fetch con disciplina indefinida.
+            continue;
+        }
+
         try {
             const eventos = await cargarLiveOficialDisciplina(disc.Key);
 
-            for (const evento of eventos) {
+            for (const evento of eventos) {AA
                 resultados.push(evento);
             }
 
@@ -2349,10 +2117,16 @@ async function cargarLiveOficial() {
 // RESULTADO SILENCIOSO
 // ========================================
 
-async function obtenerResultadoSilencioso(
-    disc,
-    resCode
-) {
+async function obtenerResultadoSilencioso(disc, resCode) {
+
+    if (!disc || !resCode) {
+        // Igual que en obtenerResultado(): sin esta guarda
+        // se terminaba pidiendo ".../undefined/results/..."
+        // y devolviendo 404 sin explicar por qué.
+        throw new Error(
+            "obtenerResultadoSilencioso: falta 'disc' o 'resCode'"
+        );
+    }
 
     const url =
         `${API_BASE}/api/s/${CHAMP}/${LANG}/${disc}/results/${resCode}`;
@@ -2434,11 +2208,11 @@ async function actualizarResultadosLive() {
             }
 
             detallesEventos[
-    obtenerClaveFavorito(
-        evento.codigoDeporte,
-        evento.clave
-    )
-] = {
+                obtenerClaveFavorito(
+                    evento.codigoDeporte,
+                    evento.clave
+                )
+            ] = {
                 Results: {
                     Result: "",
                     ResDetail: ""
@@ -2454,8 +2228,7 @@ async function actualizarResultadosLive() {
         }
 
 
-        window.detallesEventos =
-            detallesEventos;
+        window.detallesEventos = detallesEventos;
 
 
         // ============================================
@@ -2463,28 +2236,10 @@ async function actualizarResultadosLive() {
         // ============================================
 
         renderEventosLive();
-if (seccionActual === "favoritos") {
-    renderFavoritos();
-}
 
-        // ============================================
-        // 5. INFORMACIÓN DE DEPURACIÓN
-        // ============================================
-
-        console.log(
-            `🔴 LIVE OFICIAL: ${eventosEnVivo.length} eventos`
-        );
-
-        console.table(
-            eventosEnVivo.map(evento => ({
-                deporte: evento.deporte,
-                evento: evento.eventoNombre,
-                estado: evento.estado,
-                unidad: evento.unidadCorta,
-                clave: evento.clave
-            }))
-        );
-
+        if (seccionActual === "favoritos") {
+            renderFavoritos();
+        }
 
         return eventosEnVivo;
 
@@ -2518,10 +2273,6 @@ async function actualizarAgenda() {
 
     try {
 
-        console.log(
-            "📅 Actualizando agenda..."
-        );
-
         // Actualizar todas las unidades de las 60 disciplinas
         await cargarTodasLasUnidades();
 
@@ -2530,12 +2281,6 @@ async function actualizarAgenda() {
 
         // Volver a cargar el LIVE desde la fuente oficial
         await actualizarResultadosLive();
-
-        console.log(
-            `📅 Agenda actualizada | ` +
-            `LIVE oficial: ${eventosEnVivo.length} | ` +
-            `próximos: ${eventosProximos.length}`
-        );
 
     } catch (error) {
 
@@ -2551,6 +2296,7 @@ async function actualizarAgenda() {
     }
 
 }
+
 // ========================================
 // ACTUALIZAR UN EVENTO INDIVIDUAL
 // ========================================
@@ -2564,7 +2310,10 @@ async function actualizarEventoLive(codigoDeporte, clave) {
         return null;
     }
 
-    if (!evento.resCode) {
+    if (!evento.resCode || !evento.codigoDeporte) {
+        // Sin estos dos datos no se puede armar la URL de
+        // resultado; antes esto se colaba y terminaba en un
+        // fetch a ".../undefined/results/...".
         return null;
     }
 
@@ -2574,20 +2323,18 @@ async function actualizarEventoLive(codigoDeporte, clave) {
             evento.resCode
         );
 
-const claveCompuesta =
-    obtenerClaveFavorito(
-        codigoDeporte,
-        clave
-    );
+    const claveCompuesta =
+        obtenerClaveFavorito(
+            codigoDeporte,
+            clave
+        );
 
-detallesEventos[claveCompuesta] =
-    resultado;
+    detallesEventos[claveCompuesta] = resultado;
 
-firmasResultadosLive[claveCompuesta] =
-    crearFirmaResultado(resultado);
+    firmasResultadosLive[claveCompuesta] =
+        crearFirmaResultado(resultado);
 
-    window.detallesEventos =
-        detallesEventos;
+    window.detallesEventos = detallesEventos;
 
     return {
         unidad: evento,
@@ -2608,16 +2355,6 @@ function iniciarActualizacionAutomatica(
 
     detenerActualizacionAutomatica();
 
-
-    console.log(
-        `🔴 LIVE cada ${segundosLive}s`
-    );
-
-    console.log(
-        `📅 Agenda cada ${segundosAgenda}s`
-    );
-
-
     intervaloLive =
         setInterval(
             actualizarResultadosLive,
@@ -2632,11 +2369,8 @@ function iniciarActualizacionAutomatica(
         );
 
 
-    window.intervaloLive =
-        intervaloLive;
-
-    window.intervaloAgenda =
-        intervaloAgenda;
+    window.intervaloLive = intervaloLive;
+    window.intervaloAgenda = intervaloAgenda;
 
 }
 
@@ -2678,28 +2412,17 @@ async function inicializarMotorEventos() {
 
     clasificarEventos();
 
-    console.log(
-        "📊 Motor de eventos iniciado:",
-        obtenerResumenEventos()
-    );
-
-
     // Primera carga de resultados LIVE
     await actualizarResultadosLive();
 
-
     // Primera renderización de la interfaz
     renderEventosLive();
-
 
     // ========================================
     // ACTUALIZACIÓN AUTOMÁTICA
     // ========================================
 
-    iniciarActualizacionAutomatica(
-        30,
-        60
-    );
+    iniciarActualizacionAutomatica(30, 60);
 
 }
 
@@ -2733,10 +2456,10 @@ function crearTarjetaEventoLive(evento) {
         (evento.favorito ? " favorito" : "");
 
     tarjeta.dataset.clave =
-    obtenerClaveFavorito(
-        evento.codigoDeporte,
-        evento.clave
-    );
+        obtenerClaveFavorito(
+            evento.codigoDeporte,
+            evento.clave
+        );
 
 
     // ========================================
@@ -2796,23 +2519,23 @@ function crearTarjetaEventoLive(evento) {
             : "Agregar a favoritos";
 
 
-botonFavorito.addEventListener(
-    "click",
-    () => {
+    botonFavorito.addEventListener(
+        "click",
+        () => {
 
-        alternarFavorito(
-            evento.codigoDeporte,
-            evento.clave
-        );
+            alternarFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            );
 
-        if (seccionActual === "favoritos") {
-            renderFavoritos();
-        } else {
-            renderEventosLive();
+            if (seccionActual === "favoritos") {
+                renderFavoritos();
+            } else {
+                renderEventosLive();
+            }
+
         }
-
-    }
-);
+    );
 
 
     cabecera.appendChild(izquierda);
@@ -2949,70 +2672,71 @@ botonFavorito.addEventListener(
     }
 
 
- // ========================================
-// MARCADOR DEL RESULTADO
-// ========================================
+    // ========================================
+    // MARCADOR DEL RESULTADO
+    // ========================================
 
-const marcador =
-    document.createElement("div");
+    const marcador =
+        document.createElement("div");
 
-marcador.className =
-    "evento-live-marcador";
+    marcador.className =
+        "evento-live-marcador";
 
-const resultadoAPI =
-    evento.resultado?.Results;
+    const resultadoAPI =
+        evento.resultado?.Results;
 
-if (resultadoAPI) {
+    if (resultadoAPI) {
 
-    // Resultado principal
-    if (resultadoAPI.Result) {
+        // Resultado principal
+        if (resultadoAPI.Result) {
 
-        marcador.textContent =
-            resultadoAPI.Result;
+            marcador.textContent =
+                resultadoAPI.Result;
 
-    }
-    else if (resultadoAPI.ResDetail) {
+        }
+        else if (resultadoAPI.ResDetail) {
 
-        marcador.textContent =
-            resultadoAPI.ResDetail;
+            marcador.textContent =
+                resultadoAPI.ResDetail;
 
-    }
+        }
 
-    // Información adicional del partido
-    if (
-        resultadoAPI.CurrentPeriod ||
-        resultadoAPI.Duration
-    ) {
+        // Información adicional del partido
+        if (
+            resultadoAPI.CurrentPeriod ||
+            resultadoAPI.Duration
+        ) {
 
-        const detalleMarcador =
-            document.createElement("div");
+            const detalleMarcador =
+                document.createElement("div");
 
-        detalleMarcador.className =
-            "evento-live-marcador-detalle";
+            detalleMarcador.className =
+                "evento-live-marcador-detalle";
 
-        const partes = [];
+            const partes = [];
 
-        if (resultadoAPI.CurrentPeriod) {
-            partes.push(
-                `Período ${resultadoAPI.CurrentPeriod}`
+            if (resultadoAPI.CurrentPeriod) {
+                partes.push(
+                    `Período ${resultadoAPI.CurrentPeriod}`
+                );
+            }
+
+            if (resultadoAPI.Duration) {
+                partes.push(
+                    resultadoAPI.Duration
+                );
+            }
+
+            detalleMarcador.textContent =
+                partes.join(" · ");
+
+            marcador.appendChild(
+                detalleMarcador
             );
         }
 
-        if (resultadoAPI.Duration) {
-            partes.push(
-                resultadoAPI.Duration
-            );
-        }
-
-        detalleMarcador.textContent =
-            partes.join(" · ");
-
-        marcador.appendChild(
-            detalleMarcador
-        );
     }
 
-}
     // ========================================
     // PIE
     // ========================================
@@ -3052,37 +2776,18 @@ if (resultadoAPI) {
     // ARMAR TARJETA
     // ========================================
 
-    tarjeta.appendChild(
-        cabecera
-    );
+    tarjeta.appendChild(cabecera);
+    tarjeta.appendChild(informacion);
 
-    tarjeta.appendChild(
-        informacion
-    );
-
-    if (
-        participantes.children.length
-    ) {
-
-        tarjeta.appendChild(
-            participantes
-        );
-
+    if (participantes.children.length) {
+        tarjeta.appendChild(participantes);
     }
 
-    if (
-        marcador.textContent
-    ) {
-
-        tarjeta.appendChild(
-            marcador
-        );
-
+    if (marcador.textContent) {
+        tarjeta.appendChild(marcador);
     }
 
-    tarjeta.appendChild(
-        pie
-    );
+    tarjeta.appendChild(pie);
 
 
     return tarjeta;
@@ -3097,19 +2802,11 @@ if (resultadoAPI) {
 function renderEventosLive() {
 
     const contenedor =
-        document.getElementById(
-            "eventosLive"
-        );
+        document.getElementById("eventosLive");
 
 
     if (!contenedor) {
-
-        console.warn(
-            "⚠️ No existe #eventosLive en el HTML"
-        );
-
         return;
-
     }
 
 
@@ -3152,11 +2849,6 @@ function renderEventosLive() {
         }
     );
 
-
-    console.log(
-        `🖥️ LIVE UI renderizada: ${eventos.length} eventos`
-    );
-
 }
 
 
@@ -3164,8 +2856,7 @@ function renderEventosLive() {
 // EXPONER RENDER
 // ========================================
 
-window.renderEventosLive =
-    renderEventosLive;
+window.renderEventosLive = renderEventosLive;
 
 // ========================================
 // SECCIÓN DE FAVORITOS
@@ -3184,11 +2875,11 @@ function obtenerTodosLosFavoritos() {
         if (!evento?.clave) continue;
 
         if (favoritosEventos.has(
-    obtenerClaveFavorito(
-        evento.codigoDeporte,
-        evento.clave
-    )
-)) {
+            obtenerClaveFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            )
+        )) {
             mapa.set(
                 `${evento.codigoDeporte}:${evento.clave}`,
                 evento
@@ -3203,11 +2894,11 @@ function obtenerTodosLosFavoritos() {
         if (!evento?.clave) continue;
 
         if (favoritosEventos.has(
-    obtenerClaveFavorito(
-        evento.codigoDeporte,
-        evento.clave
-    )
-)) {
+            obtenerClaveFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            )
+        )) {
             mapa.set(
                 `${evento.codigoDeporte}:${evento.clave}`,
                 evento
@@ -3350,12 +3041,6 @@ function renderFavoritos() {
                 }
             }
 
-            // ========================================
-            // BOTÓN FAVORITO
-            // ========================================
-
-
-
             grid.appendChild(tarjeta);
         }
 
@@ -3367,20 +3052,9 @@ function renderFavoritos() {
     // MOSTRAR GRUPOS
     // ========================================
 
-    crearGrupo(
-        "🔴 EN VIVO",
-        enVivo
-    );
-
-    crearGrupo(
-        "📅 PRÓXIMOS",
-        proximos
-    );
-
-    crearGrupo(
-        "✅ FINALIZADOS",
-        finalizados
-    );
+    crearGrupo("🔴 EN VIVO", enVivo);
+    crearGrupo("📅 PRÓXIMOS", proximos);
+    crearGrupo("✅ FINALIZADOS", finalizados);
 
     // ========================================
     // SIN FAVORITOS
@@ -3397,14 +3071,8 @@ function renderFavoritos() {
 
         contenedor.appendChild(mensaje);
     }
-
-    console.log(
-        `⭐ Favoritos renderizados: ${favoritos.length} ` +
-        `(${enVivo.length} LIVE, ` +
-        `${proximos.length} próximos, ` +
-        `${finalizados.length} finalizados)`
-    );
 }
+
 // ========================================
 // NAVEGACIÓN A FAVORITOS
 // ========================================
@@ -3487,14 +3155,13 @@ document.getElementById(
     "click",
     mostrarFavoritos
 );
+
 const btnIndividuales =
     document.getElementById("btnIndividuales");
 
 if (btnIndividuales) {
 
     btnIndividuales.addEventListener("click", () => {
-
-        console.log("🏃 Botón Individuales");
 
         seccionActual = "individuales";
 
@@ -3506,13 +3173,12 @@ if (btnIndividuales) {
         renderIndividuales();
     });
 }
+
 const btnEquipos = document.getElementById("btnEquipos");
 
 if (btnEquipos) {
 
     btnEquipos.addEventListener("click", () => {
-
-        console.log("🏟️ Botón Equipos");
 
         seccionActual = "equipos";
 
@@ -3523,14 +3189,13 @@ if (btnEquipos) {
         renderEquipos();
     });
 }
+
 const btnPaises =
     document.getElementById("btnPaises");
 
 if (btnPaises) {
 
     btnPaises.addEventListener("click", () => {
-
-        console.log("🌎 Botón Países");
 
         seccionActual = "paises";
 
@@ -3543,6 +3208,7 @@ if (btnPaises) {
         renderPaises();
     });
 }
+
 // ========================================
 // BOTÓN JUEGOS SURAMERICANOS → INICIO
 // ========================================
