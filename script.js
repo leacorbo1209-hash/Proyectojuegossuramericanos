@@ -96,13 +96,27 @@ async function obtenerDatos(url) {
 function obtenerMedallero() {
     const medallero = new Map();
 
-    function asegurarPais(pais, nombre) {
+    const nombresPaises = {
+        ARG: "Argentina",
+        BOL: "Bolivia",
+        BRA: "Brasil",
+        CHI: "Chile",
+        COL: "Colombia",
+        ECU: "Ecuador",
+        PAN: "Panamá",
+        PAR: "Paraguay",
+        PER: "Perú",
+        URU: "Uruguay",
+        VEN: "Venezuela"
+    };
+
+    function asegurarPais(pais) {
         if (!pais) return;
 
         if (!medallero.has(pais)) {
             medallero.set(pais, {
                 pais: pais,
-                nombre: nombre || pais,
+                nombre: nombresPaises[pais] || pais,
                 oro: 0,
                 plata: 0,
                 bronce: 0,
@@ -111,10 +125,10 @@ function obtenerMedallero() {
         }
     }
 
-    function agregarMedalla(pais, nombre, tipo) {
+    function agregarMedalla(pais, tipo) {
         if (!pais) return;
 
-        asegurarPais(pais, nombre);
+        asegurarPais(pais);
 
         const registro = medallero.get(pais);
 
@@ -166,33 +180,26 @@ function obtenerMedallero() {
         }
 
         if (
-            evento.unidadNombre.includes(
-                "Gold Medal Match"
-            )
+            evento.unidadNombre.includes("Gold Medal Match")
         ) {
             agregarMedalla(
                 ganador.pais,
-                ganador.nombre,
                 "oro"
             );
 
             if (perdedor) {
                 agregarMedalla(
                     perdedor.pais,
-                    perdedor.nombre,
                     "plata"
                 );
             }
         }
 
         if (
-            evento.unidadNombre.includes(
-                "Bronze Medal Match"
-            )
+            evento.unidadNombre.includes("Bronze Medal Match")
         ) {
             agregarMedalla(
                 ganador.pais,
-                ganador.nombre,
                 "bronce"
             );
         }
