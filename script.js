@@ -379,6 +379,156 @@ function renderEquipos() {
         `🏟️ Deportes de equipo mostrados: ${eventosPorDeporte.size}`
     );
 }
+function obtenerEventosPaises() {
+
+    const todosLosEventos = [
+        ...eventosActuales,
+        ...eventosEnVivo
+    ];
+
+    const paises = new Map();
+
+    for (const evento of todosLosEventos) {
+
+        if (!evento) continue;
+
+        const claveEvento =
+            obtenerClaveFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            );
+
+        if (!claveEvento) continue;
+
+        const participantes =
+            Array.isArray(evento.participantes)
+                ? evento.participantes
+                : [];
+
+        for (const participante of participantes) {
+
+            const pais = participante.pais;
+
+            if (!pais) continue;
+
+            if (!paises.has(pais)) {
+                paises.set(pais, new Map());
+            }
+
+            paises
+                .get(pais)
+                .set(claveEvento, evento);
+        }
+    }
+
+    const resultado = new Map();
+
+    for (const [pais, eventos] of paises) {
+        resultado.set(pais, [...eventos.values()]);
+    }
+
+    return resultado;
+}
+function renderPaises() {
+
+    const contenedor =
+        document.getElementById("eventosPaises");
+
+    if (!contenedor) {
+        console.error("❌ No existe #eventosPaises");
+        return;
+    }
+
+    const paises = obtenerEventosPaises();
+
+    contenedor.innerHTML = "";
+
+    const contador =
+        document.getElementById("contadorPaises");
+
+    if (contador) {
+        contador.textContent =
+            `${paises.size} países`;
+    }
+
+    if (paises.size === 0) {
+
+        contenedor.innerHTML = `
+            <p class="mensaje-vacio">
+                No hay eventos con países disponibles.
+            </p>
+        `;
+
+        return;
+    }
+
+    /*
+     * Ordenar países alfabéticamente.
+     */
+    const paisesOrdenados =
+        [...paises.entries()]
+            .sort((a, b) =>
+                a[0].localeCompare(
+                    b[0],
+                    "es",
+                    { sensitivity: "base" }
+                )
+            );
+
+    for (const [pais, eventos] of paisesOrdenados) {
+
+        const seccion =
+            document.createElement("section");
+
+        seccion.className = "sport-section";
+
+        seccion.innerHTML = `
+            <div class="section-title">
+                <span>🌎</span>
+                <h2>${pais}</h2>
+            </div>
+
+            <div class="events-grid"></div>
+        `;
+
+        const grid =
+            seccion.querySelector(".events-grid");
+
+        /*
+         * Ordenar los eventos del país por fecha.
+         */
+        eventos.sort((a, b) => {
+
+            const fechaA =
+                new Date(a.fecha || 0).getTime();
+
+            const fechaB =
+                new Date(b.fecha || 0).getTime();
+
+            return fechaA - fechaB;
+        });
+
+        for (const evento of eventos) {
+
+            const tarjeta =
+                crearTarjetaEventoLive(evento);
+
+            if (tarjeta) {
+                grid.appendChild(tarjeta);
+            }
+        }
+
+        contenedor.appendChild(seccion);
+    }
+
+    console.log(
+        `🌎 Países renderizados: ${paises.size}`
+    );
+
+    console.log(
+        `🌎 Eventos distribuidos entre países`
+    );
+}
 // ========================================
 // VARIABLES GLOBALES
 // ========================================
