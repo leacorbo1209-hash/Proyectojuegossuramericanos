@@ -121,6 +121,42 @@ function esDisciplinaDeEquipo(codigo) {
 function esDisciplinaIndividual(codigo) {
     return !esDisciplinaDeEquipo(codigo);
 }
+
+function obtenerEventosEquipos() {
+
+    const todosLosEventos = [
+        ...eventosActuales,
+        ...eventosEnVivo
+    ];
+
+    const mapa = new Map();
+
+    for (const evento of todosLosEventos) {
+
+        if (!evento) continue;
+
+        if (!esDisciplinaDeEquipo(evento.codigoDeporte)) {
+            continue;
+        }
+
+        const clave = obtenerClaveFavorito(
+            evento.codigoDeporte,
+            evento.clave
+        );
+
+        if (!clave) continue;
+
+        mapa.set(clave, {
+            ...evento,
+            participantes:
+                Array.isArray(evento.participantes)
+                    ? evento.participantes
+                    : []
+        });
+    }
+
+    return [...mapa.values()];
+}
 // ========================================
 // VARIABLES GLOBALES
 // ========================================
