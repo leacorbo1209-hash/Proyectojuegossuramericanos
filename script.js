@@ -121,7 +121,136 @@ function esDisciplinaDeEquipo(codigo) {
 function esDisciplinaIndividual(codigo) {
     return !esDisciplinaDeEquipo(codigo);
 }
+function obtenerEventosIndividuales() {
 
+    const todosLosEventos = [
+        ...eventosActuales,
+        ...eventosEnVivo
+    ];
+
+    const mapa = new Map();
+
+    for (const evento of todosLosEventos) {
+
+        if (!evento) continue;
+
+        if (!esDisciplinaIndividual(evento.codigoDeporte)) {
+            continue;
+        }
+
+        const clave = obtenerClaveFavorito(
+            evento.codigoDeporte,
+            evento.clave
+        );
+
+        if (!clave) continue;
+
+        mapa.set(clave, {
+            ...evento,
+            participantes:
+                Array.isArray(evento.participantes)
+                    ? evento.participantes
+                    : []
+        });
+    }
+
+    return [...mapa.values()];
+}
+function renderIndividuales() {
+
+    const contenedor =
+        document.getElementById("eventosIndividuales");
+
+    if (!contenedor) {
+        console.error("❌ No existe #eventosIndividuales");
+        return;
+    }
+
+    const eventos = obtenerEventosIndividuales();
+
+    contenedor.innerHTML = "";
+
+    const contador =
+        document.getElementById("contadorIndividuales");
+
+    if (contador) {
+        contador.textContent =
+            `${eventos.length} eventos individuales`;
+    }
+
+    if (eventos.length === 0) {
+        contenedor.innerHTML = `
+            <p class="mensaje-vacio">
+                No hay eventos individuales para mostrar.
+            </p>
+        `;
+        return;
+    }
+
+    const eventosPorDeporte = new Map();
+
+    for (const evento of eventos) {
+
+        const codigo = evento.codigoDeporte;
+
+        if (!eventosPorDeporte.has(codigo)) {
+            eventosPorDeporte.set(codigo, []);
+        }
+
+        eventosPorDeporte
+            .get(codigo)
+            .push(evento);
+    }
+
+    for (const disciplina of disciplinas) {
+
+        const codigo = disciplina.Key;
+
+        if (!eventosPorDeporte.has(codigo)) {
+            continue;
+        }
+
+        const eventosDelDeporte =
+            eventosPorDeporte.get(codigo);
+
+        const seccion =
+            document.createElement("section");
+
+        seccion.className = "sport-section";
+
+        seccion.innerHTML = `
+            <div class="section-title">
+                <span>🏃</span>
+                <h2>${disciplina.Desc}</h2>
+            </div>
+
+            <div class="events-grid"></div>
+        `;
+
+        const grid =
+            seccion.querySelector(".events-grid");
+
+        for (const evento of eventosDelDeporte) {
+
+            const tarjeta =
+                crearTarjetaEventoLive(evento);
+
+            if (tarjeta) {
+                grid.appendChild(tarjeta);
+            }
+        }
+
+        contenedor.appendChild(seccion);
+    }
+
+    console.log(
+        `🏃 Individuales renderizados: ${eventos.length}`
+    );
+
+    console.log(
+        `🏃 Deportes individuales mostrados: ${eventosPorDeporte.size}`
+    );
+}
 function obtenerEventosEquipos() {
 
     const todosLosEventos = [
