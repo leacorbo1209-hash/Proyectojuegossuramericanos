@@ -103,7 +103,24 @@ async function obtenerDisciplinas() {
     return await obtenerDatos(url);
 }
 
+const DISCIPLINAS_EQUIPO = [
+    "FBL", // Football
+    "HBL", // Handball
+    "HOC", // Hockey
+    "RU7", // Rugby Sevens
+    "SBL", // Softball
+    "VVO", // Volleyball
+    "VBV", // Beach Volleyball
+    "WPO"  // Water Polo
+];
 
+function esDisciplinaDeEquipo(codigo) {
+    return DISCIPLINAS_EQUIPO.includes(codigo);
+}
+
+function esDisciplinaIndividual(codigo) {
+    return !esDisciplinaDeEquipo(codigo);
+}
 // ========================================
 // VARIABLES GLOBALES
 // ========================================
