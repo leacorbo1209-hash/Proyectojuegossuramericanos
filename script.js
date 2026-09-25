@@ -2841,6 +2841,23 @@ document.getElementById(
     "click",
     mostrarFavoritos
 );
+const btnEquipos = document.getElementById("btnEquipos");
+
+if (btnEquipos) {
+
+    btnEquipos.addEventListener("click", () => {
+
+        console.log("🏟️ Botón Equipos");
+
+        seccionActual = "equipos";
+
+        document.getElementById("seccionFavoritos").hidden = true;
+        document.getElementById("seccionEquipos").hidden = false;
+        document.getElementById("seccionLive").hidden = true;
+
+        renderEquipos();
+    });
+}
 // ========================================
 // BOTÓN JUEGOS SURAMERICANOS → INICIO
 // ========================================
