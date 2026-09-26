@@ -3289,6 +3289,13 @@ if (btnCalendario) {
             titulo.textContent = "Calendario";
         }
 
+if (!window.calendarioInicializado) {
+    inicializarCalendario();
+    window.calendarioInicializado = true;
+} else {
+    cargarFiltroDeportesCalendario();
+    renderCalendario();
+}
 // ------------------------------------------------------------
 // OBTENER NOMBRE DEL DEPORTE
 // ------------------------------------------------------------
