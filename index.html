@@ -43,15 +43,12 @@
     <span>Países</span>
 </button>
 
-                <button class="menu-item" id="btnMedallas">
-    <span class="icon">🥇</span>
-    <span>Medallas</span>
-</button>
 
-                <button class="menu-item">
-                    <span class="icon">📅</span>
-                    <span>Calendario</span>
-                </button>
+
+                <button class="menu-item" id="btnCalendario">
+    <span class="icon">📅</span>
+    <span>Calendario</span>
+</button>
 
             </nav>
 
@@ -89,11 +86,75 @@
     <p id="contadorPaises"></p>
     <div id="eventosPaises" class="eventos-live-grid"></div>
 </section>
-            <section id="seccionMedallas" class="seccion-favoritos" hidden>
-    <h2>🥇 Medallero</h2>
-    <p id="contadorMedallas"></p>
+            <section id="seccionCalendario" class="seccion-calendario" hidden>
 
-    <div id="tablaMedallas" class="tabla-medallas"></div>
+    <header class="calendario-header">
+
+        <div>
+            <p class="eyebrow">JUEGOS SURAMERICANOS</p>
+            <h1>Calendario</h1>
+            <p id="contadorCalendario">
+                Eventos de los Juegos Suramericanos
+            </p>
+        </div>
+
+        <div class="calendario-controles">
+
+            <button
+                id="calendarioAnterior"
+                class="calendario-nav"
+                type="button"
+            >
+                ‹
+            </button>
+
+            <div class="calendario-fecha">
+                <strong id="calendarioFechaTexto">
+                    —
+                </strong>
+
+                <span id="calendarioFechaCompleta">
+                    —
+                </span>
+            </div>
+
+            <button
+                id="calendarioSiguiente"
+                class="calendario-nav"
+                type="button"
+            >
+                ›
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <div class="calendario-filtros">
+
+        <button
+            id="calendarioHoy"
+            class="calendario-filtro activo"
+            type="button"
+        >
+            HOY
+        </button>
+
+        <select id="calendarioDeporte">
+            <option value="TODOS">
+                Todos los deportes
+            </option>
+        </select>
+
+    </div>
+
+
+    <div
+        id="calendarioEventos"
+        class="calendario-eventos"
+    ></div>
+
 </section>
 
             <section id="seccionLive" class="seccion-live">
