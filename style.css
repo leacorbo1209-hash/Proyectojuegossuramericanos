@@ -598,3 +598,300 @@ button {
     cursor: pointer;
     text-align: left;
 }
+/* ============================================================
+   CALENDARIO
+   ============================================================ */
+
+.seccion-calendario {
+    width: 100%;
+}
+
+
+.calendario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+
+.calendario-header h1 {
+    margin: 4px 0;
+}
+
+
+.calendario-header p {
+    margin: 0;
+}
+
+
+.calendario-controles {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+.calendario-nav {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 28px;
+    background: var(--card-bg, #ffffff);
+    color: inherit;
+}
+
+
+.calendario-nav:hover {
+    transform: translateY(-1px);
+}
+
+
+.calendario-fecha {
+    min-width: 170px;
+    text-align: center;
+}
+
+
+.calendario-fecha strong {
+    display: block;
+    font-size: 20px;
+}
+
+
+.calendario-fecha span {
+    display: block;
+    margin-top: 3px;
+    opacity: .65;
+    text-transform: capitalize;
+}
+
+
+.calendario-filtros {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+
+.calendario-filtro {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+
+.calendario-filtro.activo {
+    font-weight: 700;
+}
+
+
+#calendarioDeporte {
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(128, 128, 128, .25);
+    background: var(--card-bg, #fff);
+    color: inherit;
+}
+
+
+.calendario-grupo {
+    margin-bottom: 30px;
+}
+
+
+.calendario-grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+
+.calendario-grupo-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+
+.calendario-grupo-eventos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+.calendario-evento {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 20px;
+    align-items: center;
+
+    padding: 18px;
+
+    border-radius: 16px;
+
+    background: var(--card-bg, #ffffff);
+    border: 1px solid rgba(128, 128, 128, .15);
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease;
+}
+
+
+.calendario-evento:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+}
+
+
+.calendario-evento-hora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+}
+
+
+.calendario-evento-hora strong {
+    font-size: 20px;
+}
+
+
+.calendario-estado {
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+
+.calendario-estado.en-vivo {
+    color: #d71920;
+}
+
+
+.calendario-estado.finalizado {
+    opacity: .55;
+}
+
+
+.calendario-estado.programado {
+    opacity: .65;
+}
+
+
+.calendario-evento-deporte {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    opacity: .6;
+    margin-bottom: 4px;
+}
+
+
+.calendario-evento-contenido h3 {
+    margin: 0;
+    font-size: 17px;
+}
+
+
+.calendario-fase,
+.calendario-unidad {
+    margin: 4px 0 0;
+    opacity: .65;
+    font-size: 13px;
+}
+
+
+.calendario-participantes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+
+.calendario-participante {
+    display: flex;
+    flex-direction: column;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(128, 128, 128, .08);
+}
+
+
+.calendario-participante small {
+    opacity: .6;
+}
+
+
+.calendario-evento-ubicacion {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    font-size: 12px;
+    opacity: .7;
+    text-align: right;
+}
+
+
+.calendario-vacio {
+    text-align: center;
+    padding: 70px 20px;
+    opacity: .7;
+}
+
+
+.calendario-vacio-icon {
+    font-size: 45px;
+    margin-bottom: 10px;
+}
+
+
+@media (max-width: 800px) {
+
+    .calendario-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .calendario-controles {
+        justify-content: center;
+    }
+
+    .calendario-evento {
+        grid-template-columns: 70px 1fr;
+    }
+
+    .calendario-evento-ubicacion {
+        grid-column: 2;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+}
+
+
+@media (max-width: 520px) {
+
+    .calendario-evento {
+        grid-template-columns: 1fr;
+    }
+
+    .calendario-evento-hora {
+        align-items: flex-start;
+        flex-direction: row;
+    }
+
+    .calendario-evento-ubicacion {
+        grid-column: auto;
+    }
+
+}
