@@ -3278,74 +3278,579 @@ document.getElementById(
     "click",
     mostrarPantallaPrincipal
 );
-// ============================================================
+// ========================================
 // CALENDARIO
-// ============================================================
+// ========================================
 
 let fechaCalendarioActual = new Date();
 
+fechaCalendarioActual.setHours(
+    12,
+    0,
+    0,
+    0
+);
+
 
 // ------------------------------------------------------------
-// UTILIDADES
+// CACHE DE RESULTADOS
+// ------------------------------------------------------------
+
+const resultadosCalendarioCache =
+    new Map();
+
+const cargasResultadosCalendario =
+    new Map();
+
+
+// ------------------------------------------------------------
+// FECHAS
+// ------------------------------------------------------------
+
+function obtenerClaveFechaCalendario(fecha) {
+
+    if (!fecha) {
+        return "";
+    }
+
+    const texto =
+        String(fecha);
+
+    const coincidencia =
+        texto.match(
+            /^(\d{4})-(\d{2})-(\d{2})/
+        );
+
+    if (coincidencia) {
+
+        return (
+            `${coincidencia[1]}-` +
+            `${coincidencia[2]}-` +
+            `${coincidencia[3]}`
+        );
+
+    }
+
+    const convertida =
+        new Date(fecha);
+
+    if (
+        Number.isNaN(
+            convertida.getTime()
+        )
+    ) {
+        return "";
+    }
+
+    return (
+        `${convertida.getFullYear()}-` +
+        `${String(
+            convertida.getMonth() + 1
+        ).padStart(2, "0")}-` +
+        `${String(
+            convertida.getDate()
+        ).padStart(2, "0")}`
+    );
+}
+
+
+function obtenerClaveFechaObjeto(fecha) {
+
+    if (!(fecha instanceof Date)) {
+        fecha = new Date(fecha);
+    }
+
+    if (
+        Number.isNaN(
+            fecha.getTime()
+        )
+    ) {
+        return "";
+    }
+
+    return (
+        `${fecha.getFullYear()}-` +
+        `${String(
+            fecha.getMonth() + 1
+        ).padStart(2, "0")}-` +
+        `${String(
+            fecha.getDate()
+        ).padStart(2, "0")}`
+    );
+}
+
+
+// ------------------------------------------------------------
+// OBTENER TODOS LOS EVENTOS
 // ------------------------------------------------------------
 
 function obtenerTodosLosEventosCalendario() {
 
-    return Object.values(
-        window.unidadesPorDisciplina || {}
-    )
-        .flat()
-        .filter(evento =>
-            evento &&
-            evento.clave &&
-            evento.fecha
-        );
+    const mapa =
+        new Map();
 
+    const fuentes = [
+        ...(Array.isArray(
+            eventosActuales
+        )
+            ? eventosActuales
+            : []),
+
+        ...(Array.isArray(
+            eventosEnVivo
+        )
+            ? eventosEnVivo
+            : [])
+    ];
+
+    for (
+        const evento
+        of fuentes
+    ) {
+
+        if (!evento) {
+            continue;
+        }
+
+        const clave =
+            evento.clave ||
+            `${evento.codigoDeporte || ""}:` +
+            `${evento.resCode || ""}:` +
+            `${evento.fecha || ""}`;
+
+        if (!clave) {
+            continue;
+        }
+
+        mapa.set(
+            clave,
+            evento
+        );
+    }
+
+    return [
+        ...mapa.values()
+    ];
 }
 
 
-function obtenerFechaEvento(evento) {
+// ------------------------------------------------------------
+// OBTENER EVENTOS DE UN DÍA
+// ------------------------------------------------------------
 
-    const fecha = new Date(evento.fecha);
+function obtenerEventosCalendarioDia(
+    fecha
+) {
 
-    if (Number.isNaN(fecha.getTime())) {
+    const claveDia =
+        obtenerClaveFechaObjeto(
+            fecha
+        );
+
+    return obtenerTodosLosEventosCalendario()
+        .filter(evento => {
+
+            return (
+                obtenerClaveFechaCalendario(
+                    evento.fecha
+                ) === claveDia
+            );
+
+        })
+        .sort((a, b) => {
+
+            const fechaA =
+                new Date(a.fecha);
+
+            const fechaB =
+                new Date(b.fecha);
+
+            return (
+                fechaA.getTime() -
+                fechaB.getTime()
+            );
+
+        });
+}
+
+
+// ------------------------------------------------------------
+// ESTADO
+// ------------------------------------------------------------
+
+function obtenerEstadoCalendario(
+    evento
+) {
+
+    const estado =
+        String(
+            evento.estado || ""
+        ).toUpperCase();
+
+    if (
+        estado === "OFFICIAL" ||
+        estado === "UNOFFICIAL" ||
+        estado === "PROVISIONAL"
+    ) {
+
+        return {
+            texto: "FINALIZADO",
+            clase: "finalizado"
+        };
+
+    }
+
+    if (
+        evento.enVivo === true ||
+        estado === "ISLIVE" ||
+        estado === "LIVE"
+    ) {
+
+        return {
+            texto: "EN VIVO",
+            clase: "en-vivo"
+        };
+
+    }
+
+    return {
+        texto: "PROGRAMADO",
+        clase: "programado"
+    };
+}
+
+
+// ------------------------------------------------------------
+// RESULTADOS
+// ------------------------------------------------------------
+
+function obtenerClaveResultadoCalendario(
+    evento
+) {
+
+    if (
+        !evento?.codigoDeporte ||
+        !evento?.resCode
+    ) {
+        return "";
+    }
+
+    return (
+        `${evento.codigoDeporte}:` +
+        `${evento.resCode}`
+    );
+}
+
+
+async function cargarResultadoCalendario(
+    evento
+) {
+
+    const clave =
+        obtenerClaveResultadoCalendario(
+            evento
+        );
+
+    if (!clave) {
         return null;
     }
 
-    return fecha;
 
-}
+    if (
+        resultadosCalendarioCache
+            .has(clave)
+    ) {
 
+        return resultadosCalendarioCache
+            .get(clave);
 
-function mismaFecha(a, b) {
-
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-
-}
-
-
-function formatearHora(fecha) {
-
-    if (!fecha) {
-        return "--:--";
     }
 
-    return fecha.toLocaleTimeString(
-        "es-AR",
-        {
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
 
+    if (
+        cargasResultadosCalendario
+            .has(clave)
+    ) {
+
+        return cargasResultadosCalendario
+            .get(clave);
+
+    }
+
+
+    const promesa =
+        (async () => {
+
+            try {
+
+                const resultado =
+                    await obtenerResultadoSilencioso(
+                        evento.codigoDeporte,
+                        evento.resCode
+                    );
+
+                resultadosCalendarioCache
+                    .set(
+                        clave,
+                        resultado
+                    );
+
+                return resultado;
+
+            } catch (error) {
+
+                console.warn(
+                    `⚠️ Resultado de calendario ${clave}:`,
+                    error.message
+                );
+
+                return null;
+
+            } finally {
+
+                cargasResultadosCalendario
+                    .delete(clave);
+
+            }
+
+        })();
+
+
+    cargasResultadosCalendario
+        .set(
+            clave,
+            promesa
+        );
+
+
+    return promesa;
 }
 
 
-function formatearFechaLarga(fecha) {
+// ------------------------------------------------------------
+// MEZCLAR RESULTADO CON PARTICIPANTES
+// ------------------------------------------------------------
+
+function enriquecerEventoConResultadoCalendario(
+    evento,
+    resultado
+) {
+
+    if (!resultado) {
+        return evento;
+    }
+
+    const competidores =
+        Array.isArray(
+            resultado.Competitors
+        )
+            ? resultado.Competitors
+            : [];
+
+
+    if (
+        competidores.length === 0
+    ) {
+        return evento;
+    }
+
+
+    const participantesOriginales =
+        Array.isArray(
+            evento.participantes
+        )
+            ? evento.participantes
+            : [];
+
+
+    const participantes =
+        participantesOriginales.map(
+            participante => ({
+                ...participante
+            })
+        );
+
+
+    for (
+        const competidor
+        of competidores
+    ) {
+
+        const pais =
+            competidor.Org ||
+            competidor.OrgCode ||
+            competidor.Country ||
+            "";
+
+
+        const nombre =
+            competidor.Name ||
+            competidor.NameShort ||
+            competidor.Competitor ||
+            competidor.Description ||
+            pais ||
+            "—";
+
+
+        const resultadoCompetidor =
+            competidor.Result ??
+            competidor.ResDetail ??
+            competidor.Score ??
+            competidor.Time ??
+            "";
+
+
+        let participante =
+            participantes.find(
+                p =>
+                    (
+                        p.pais &&
+                        pais &&
+                        String(
+                            p.pais
+                        ).toUpperCase() ===
+                        String(
+                            pais
+                        ).toUpperCase()
+                    )
+                    ||
+                    (
+                        p.nombre &&
+                        nombre &&
+                        String(
+                            p.nombre
+                        ).toLowerCase() ===
+                        String(
+                            nombre
+                        ).toLowerCase()
+                    )
+            );
+
+
+        if (!participante) {
+
+            participante = {
+                nombre:
+                    nombre,
+
+                pais:
+                    pais,
+
+                resultado:
+                    resultadoCompetidor,
+
+                ganador:
+                    Boolean(
+                        competidor.Winner
+                    )
+            };
+
+            participantes.push(
+                participante
+            );
+
+        } else {
+
+            participante.resultado =
+                resultadoCompetidor;
+
+            if (
+                competidor.Winner !==
+                undefined
+            ) {
+
+                participante.ganador =
+                    Boolean(
+                        competidor.Winner
+                    );
+
+            }
+
+        }
+
+    }
+
+
+    return {
+        ...evento,
+
+        participantes:
+            participantes,
+
+        resultadoAPI:
+            resultado
+    };
+}
+
+
+// ------------------------------------------------------------
+// ENRIQUECER EVENTOS FINALIZADOS
+// ------------------------------------------------------------
+
+async function enriquecerEventosFinalizadosCalendario(
+    eventos
+) {
+
+    const resultados =
+        await Promise.all(
+
+            eventos.map(
+                async evento => {
+
+                    const estado =
+                        obtenerEstadoCalendario(
+                            evento
+                        );
+
+                    if (
+                        estado.texto !==
+                        "FINALIZADO"
+                    ) {
+
+                        return evento;
+
+                    }
+
+                    if (
+                        !evento.resCode ||
+                        !evento.codigoDeporte
+                    ) {
+
+                        return evento;
+
+                    }
+
+                    const resultado =
+                        await cargarResultadoCalendario(
+                            evento
+                        );
+
+                    return (
+                        resultado
+                            ? enriquecerEventoConResultadoCalendario(
+                                evento,
+                                resultado
+                            )
+                            : evento
+                    );
+
+                }
+            )
+
+        );
+
+
+    return resultados;
+}
+
+
+// ------------------------------------------------------------
+// FORMATO DE FECHA
+// ------------------------------------------------------------
+
+function formatearFechaCorta(
+    fecha
+) {
 
     return fecha.toLocaleDateString(
         "es-AR",
@@ -3355,117 +3860,48 @@ function formatearFechaLarga(fecha) {
             month: "long"
         }
     );
-
 }
 
 
-function formatearFechaCorta(fecha) {
+function formatearFechaLarga(
+    fecha
+) {
 
     return fecha.toLocaleDateString(
         "es-AR",
         {
-            day: "2-digit",
-            month: "2-digit"
+            day: "numeric",
+            month: "long",
+            year: "numeric"
         }
     );
-
 }
 
 
-// ------------------------------------------------------------
-// OBTENER EVENTOS DEL DÍA
-// ------------------------------------------------------------
+function formatearHora(
+    fecha
+) {
 
-function obtenerEventosCalendarioDia(fecha) {
-
-    const todos =
-        obtenerTodosLosEventosCalendario();
-
-    return todos
-        .filter(evento => {
-
-            const fechaEvento =
-                obtenerFechaEvento(evento);
-
-            if (!fechaEvento) {
-                return false;
-            }
-
-            return mismaFecha(
-                fechaEvento,
-                fecha
-            );
-
-        })
-        .sort((a, b) => {
-
-            const fechaA =
-                obtenerFechaEvento(a);
-
-            const fechaB =
-                obtenerFechaEvento(b);
-
-            return fechaA - fechaB;
-
-        });
-
-}
-
-
-// ------------------------------------------------------------
-// OBTENER NOMBRE DEL DEPORTE
-// ------------------------------------------------------------
-
-function obtenerNombreDeporte(codigo) {
-
-    const disciplina =
-        (window.disciplinas || [])
-            .find(d => d.Key === codigo);
-
-    return (
-        disciplina?.Desc ||
-        codigo ||
-        "Deporte"
-    );
-
-}
-
-
-// ------------------------------------------------------------
-// ESTADO DEL EVENTO
-// ------------------------------------------------------------
-
-function obtenerEstadoCalendario(evento) {
-
-    if (evento.enVivo === true) {
-
-        return {
-            clase: "en-vivo",
-            texto: "🔴 EN VIVO"
-        };
-
-    }
+    const convertida =
+        new Date(fecha);
 
     if (
-        [
-            "OFFICIAL",
-            "UNOFFICIAL",
-            "PROVISIONAL"
-        ].includes(evento.estado)
+        Number.isNaN(
+            convertida.getTime()
+        )
     ) {
 
-        return {
-            clase: "finalizado",
-            texto: "FINALIZADO"
-        };
+        return "—";
 
     }
 
-    return {
-        clase: "programado",
-        texto: "PROGRAMADO"
-    };
-
+    return convertida.toLocaleTimeString(
+        "es-AR",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
 }
 
 
@@ -3473,19 +3909,30 @@ function obtenerEstadoCalendario(evento) {
 // CREAR TARJETA
 // ------------------------------------------------------------
 
-function crearTarjetaCalendario(evento) {
+function crearTarjetaCalendario(
+    evento
+) {
 
     const tarjeta =
-        document.createElement("article");
+        document.createElement(
+            "article"
+        );
 
     tarjeta.className =
         "calendario-evento";
 
+
     const fecha =
-        obtenerFechaEvento(evento);
+        new Date(
+            evento.fecha
+        );
+
 
     const estado =
-        obtenerEstadoCalendario(evento);
+        obtenerEstadoCalendario(
+            evento
+        );
+
 
     const deporte =
         obtenerNombreDeporte(
@@ -3494,43 +3941,104 @@ function crearTarjetaCalendario(evento) {
 
 
     const participantes =
-        Array.isArray(evento.participantes)
+        Array.isArray(
+            evento.participantes
+        )
             ? evento.participantes
             : [];
 
 
-    let participantesHTML = "";
+    let marcador =
+        "";
 
 
-    if (participantes.length > 0) {
+    if (
+        evento.resultadoAPI
+    ) {
+
+        marcador =
+            evento.resultadoAPI.Result ||
+            evento.resultadoAPI.ResDetail ||
+            "";
+
+    }
+
+
+    const marcadorHTML =
+        marcador
+            ? `
+                <div class="calendario-marcador">
+                    <span>RESULTADO</span>
+                    <strong>
+                        ${marcador}
+                    </strong>
+                </div>
+              `
+            : "";
+
+
+    let participantesHTML =
+        "";
+
+
+    if (
+        participantes.length > 0
+    ) {
 
         participantesHTML = `
+
             <div class="calendario-participantes">
 
-                ${participantes
-                    .map(participante => `
-                        <div class="calendario-participante">
+                ${
+                    participantes
+                        .map(
+                            participante => `
 
-                            <span>
-                                ${participante.nombre || "—"}
-                            </span>
+                                <div
+                                    class="calendario-participante"
+                                >
 
-                            ${
-                                participante.pais
-                                    ? `
-                                        <small>
-                                            ${participante.pais}
-                                        </small>
-                                      `
-                                    : ""
-                            }
+                                    <span>
+                                        ${
+                                            participante.nombre ||
+                                            "—"
+                                        }
+                                    </span>
 
-                        </div>
-                    `)
-                    .join("")
+                                    ${
+                                        participante.pais
+                                            ? `
+                                                <small>
+                                                    ${participante.pais}
+                                                </small>
+                                              `
+                                            : ""
+                                    }
+
+                                    ${
+                                        participante.resultado !== "" &&
+                                        participante.resultado != null
+                                            ? `
+                                                <strong
+                                                    class="calendario-participante-resultado"
+                                                >
+                                                    ${
+                                                        participante.resultado
+                                                    }
+                                                </strong>
+                                              `
+                                            : ""
+                                    }
+
+                                </div>
+
+                            `
+                        )
+                        .join("")
                 }
 
             </div>
+
         `;
 
     }
@@ -3538,71 +4046,118 @@ function crearTarjetaCalendario(evento) {
 
     tarjeta.innerHTML = `
 
-        <div class="calendario-evento-hora">
+        <div
+            class="calendario-evento-hora"
+        >
 
             <strong>
-                ${formatearHora(fecha)}
+                ${
+                    formatearHora(
+                        fecha
+                    )
+                }
             </strong>
 
-            <span class="calendario-estado ${estado.clase}">
-                ${estado.texto}
+            <span
+                class="calendario-estado ${estado.clase}"
+            >
+                ${
+                    estado.texto
+                }
             </span>
 
         </div>
 
 
-        <div class="calendario-evento-contenido">
+        <div
+            class="calendario-evento-contenido"
+        >
 
-            <div class="calendario-evento-deporte">
-                ${deporte}
+            <div
+                class="calendario-evento-deporte"
+            >
+                ${
+                    deporte
+                }
             </div>
 
+
             <h3>
-                ${evento.eventoNombre || "Evento"}
+                ${
+                    evento.eventoNombre ||
+                    "Evento"
+                }
             </h3>
+
 
             ${
                 evento.faseNombre
                     ? `
-                        <p class="calendario-fase">
-                            ${evento.faseNombre}
+                        <p
+                            class="calendario-fase"
+                        >
+                            ${
+                                evento.faseNombre
+                            }
                         </p>
                       `
                     : ""
             }
+
 
             ${
                 evento.unidadNombre
                     ? `
-                        <p class="calendario-unidad">
-                            ${evento.unidadNombre}
+                        <p
+                            class="calendario-unidad"
+                        >
+                            ${
+                                evento.unidadNombre
+                            }
                         </p>
                       `
                     : ""
             }
 
-            ${participantesHTML}
+
+            ${
+                participantesHTML
+            }
+
+
+            ${
+                marcadorHTML
+            }
 
         </div>
 
 
-        <div class="calendario-evento-ubicacion">
+        <div
+            class="calendario-evento-ubicacion"
+        >
 
             ${
                 evento.sede
                     ? `
                         <span>
-                            🏟️ ${evento.sede}
+                            🏟️
+                            ${
+                                evento.sede
+                            }
                         </span>
                       `
                     : ""
             }
 
+
             ${
                 evento.ubicacion
                     ? `
                         <span>
-                            📍 ${evento.ubicacion}
+                            📍
+                            ${
+                                evento.ubicacion
+                            }
                         </span>
                       `
                     : ""
@@ -3614,7 +4169,6 @@ function crearTarjetaCalendario(evento) {
 
 
     return tarjeta;
-
 }
 
 
@@ -3629,9 +4183,11 @@ function cargarFiltroDeportesCalendario() {
             "calendarioDeporte"
         );
 
+
     if (!select) {
         return;
     }
+
 
     const deportes =
         new Map();
@@ -3642,9 +4198,14 @@ function cargarFiltroDeportesCalendario() {
         of obtenerTodosLosEventosCalendario()
     ) {
 
-        if (!evento.codigoDeporte) {
+        if (
+            !evento.codigoDeporte
+        ) {
+
             continue;
+
         }
+
 
         deportes.set(
             evento.codigoDeporte,
@@ -3657,21 +4218,27 @@ function cargarFiltroDeportesCalendario() {
 
 
     select.innerHTML = `
+
         <option value="TODOS">
             Todos los deportes
         </option>
+
     `;
 
 
-    [...deportes.entries()]
-        .sort((a, b) =>
-            a[1].localeCompare(
-                b[1],
-                "es",
-                {
-                    sensitivity: "base"
-                }
-            )
+    [
+        ...deportes.entries()
+    ]
+        .sort(
+            (a, b) =>
+                a[1].localeCompare(
+                    b[1],
+                    "es",
+                    {
+                        sensitivity:
+                            "base"
+                    }
+                )
         )
         .forEach(
             ([codigo, nombre]) => {
@@ -3681,10 +4248,15 @@ function cargarFiltroDeportesCalendario() {
                         "option"
                     );
 
-                option.value = codigo;
-                option.textContent = nombre;
+                option.value =
+                    codigo;
 
-                select.appendChild(option);
+                option.textContent =
+                    nombre;
+
+                select.appendChild(
+                    option
+                );
 
             }
         );
@@ -3696,16 +4268,23 @@ function cargarFiltroDeportesCalendario() {
 // RENDER DEL CALENDARIO
 // ------------------------------------------------------------
 
-function renderCalendario() {
+async function renderCalendario() {
 
     const contenedor =
         document.getElementById(
             "calendarioEventos"
         );
 
+
     if (!contenedor) {
         return;
     }
+
+
+    const claveDiaRenderizado =
+        obtenerClaveFechaObjeto(
+            fechaCalendarioActual
+        );
 
 
     let eventos =
@@ -3717,15 +4296,19 @@ function renderCalendario() {
     const filtro =
         document.getElementById(
             "calendarioDeporte"
-        )?.value || "TODOS";
+        )?.value ||
+        "TODOS";
 
 
-    if (filtro !== "TODOS") {
+    if (
+        filtro !== "TODOS"
+    ) {
 
         eventos =
             eventos.filter(
                 evento =>
-                    evento.codigoDeporte === filtro
+                    evento.codigoDeporte ===
+                    filtro
             );
 
     }
@@ -3736,9 +4319,16 @@ function renderCalendario() {
             "calendarioFechaTexto"
         );
 
+
     const fechaCompleta =
         document.getElementById(
             "calendarioFechaCompleta"
+        );
+
+
+    const contador =
+        document.getElementById(
+            "contadorCalendario"
         );
 
 
@@ -3762,12 +4352,6 @@ function renderCalendario() {
     }
 
 
-    const contador =
-        document.getElementById(
-            "contadorCalendario"
-        );
-
-
     if (contador) {
 
         contador.textContent =
@@ -3776,16 +4360,23 @@ function renderCalendario() {
     }
 
 
-    contenedor.innerHTML = "";
+    contenedor.innerHTML =
+        "";
 
 
-    if (eventos.length === 0) {
+    if (
+        !eventos.length
+    ) {
 
         contenedor.innerHTML = `
 
-            <div class="calendario-vacio">
+            <div
+                class="calendario-vacio"
+            >
 
-                <div class="calendario-vacio-icon">
+                <div
+                    class="calendario-vacio-icon"
+                >
                     📅
                 </div>
 
@@ -3794,8 +4385,9 @@ function renderCalendario() {
                 </h3>
 
                 <p>
-                    No hay competencias programadas
-                    para este día con este filtro.
+                    No hay competencias
+                    programadas para este
+                    día con este filtro.
                 </p>
 
             </div>
@@ -3807,11 +4399,86 @@ function renderCalendario() {
     }
 
 
-    let deporteActual = null;
-    let grupo = null;
+    // Primero mostramos los eventos
+    // inmediatamente.
+
+    renderGruposCalendario(
+        eventos,
+        contenedor
+    );
 
 
-    for (const evento of eventos) {
+    // Después buscamos los resultados
+    // de los eventos finalizados.
+
+    const eventosEnriquecidos =
+        await enriquecerEventosFinalizadosCalendario(
+            eventos
+        );
+
+
+    // Si el usuario cambió de día
+    // mientras cargábamos resultados,
+    // no pisamos la pantalla actual.
+
+    const diaActual =
+        obtenerClaveFechaObjeto(
+            fechaCalendarioActual
+        );
+
+
+    const filtroActual =
+        document.getElementById(
+            "calendarioDeporte"
+        )?.value ||
+        "TODOS";
+
+
+    if (
+        diaActual !==
+            claveDiaRenderizado ||
+        filtroActual !==
+            filtro
+    ) {
+
+        return;
+
+    }
+
+
+    renderGruposCalendario(
+        eventosEnriquecidos,
+        contenedor
+    );
+
+}
+
+
+// ------------------------------------------------------------
+// AGRUPAR POR DEPORTE
+// ------------------------------------------------------------
+
+function renderGruposCalendario(
+    eventos,
+    contenedor
+) {
+
+    contenedor.innerHTML =
+        "";
+
+
+    let deporteActual =
+        null;
+
+
+    let grupo =
+        null;
+
+
+    for (
+        const evento
+        of eventos
+    ) {
 
         const deporte =
             obtenerNombreDeporte(
@@ -3833,25 +4500,33 @@ function renderCalendario() {
                     "section"
                 );
 
+
             grupo.className =
                 "calendario-grupo";
 
 
             grupo.innerHTML = `
 
-                <div class="calendario-grupo-header">
+                <div
+                    class="calendario-grupo-header"
+                >
 
                     <span>
                         🏅
                     </span>
 
                     <h2>
-                        ${deporte}
+                        ${
+                            deporte
+                        }
                     </h2>
 
                 </div>
 
-                <div class="calendario-grupo-eventos"></div>
+
+                <div
+                    class="calendario-grupo-eventos"
+                ></div>
 
             `;
 
@@ -3863,17 +4538,15 @@ function renderCalendario() {
         }
 
 
-        const lista =
-            grupo.querySelector(
+        grupo
+            .querySelector(
                 ".calendario-grupo-eventos"
-            );
-
-
-        lista.appendChild(
-            crearTarjetaCalendario(
-                evento
             )
-        );
+            .appendChild(
+                crearTarjetaCalendario(
+                    evento
+                )
+            );
 
     }
 
@@ -3884,19 +4557,36 @@ function renderCalendario() {
 // CAMBIAR DÍA
 // ------------------------------------------------------------
 
-function cambiarDiaCalendario(cantidad) {
+function cambiarDiaCalendario(
+    cantidad
+) {
 
     const nuevaFecha =
         new Date(
             fechaCalendarioActual
         );
 
+
     nuevaFecha.setDate(
-        nuevaFecha.getDate() + cantidad
+        nuevaFecha.getDate() +
+        cantidad
     );
+
+
+    // Mediodía evita problemas
+    // de cambio horario / DST.
+
+    nuevaFecha.setHours(
+        12,
+        0,
+        0,
+        0
+    );
+
 
     fechaCalendarioActual =
         nuevaFecha;
+
 
     renderCalendario();
 
@@ -3911,6 +4601,15 @@ function irACalendarioHoy() {
 
     fechaCalendarioActual =
         new Date();
+
+
+    fechaCalendarioActual.setHours(
+        12,
+        0,
+        0,
+        0
+    );
+
 
     renderCalendario();
 
@@ -3928,15 +4627,18 @@ function inicializarCalendario() {
             "calendarioAnterior"
         );
 
+
     const siguiente =
         document.getElementById(
             "calendarioSiguiente"
         );
 
+
     const hoy =
         document.getElementById(
             "calendarioHoy"
         );
+
 
     const deporte =
         document.getElementById(
@@ -3947,14 +4649,18 @@ function inicializarCalendario() {
     anterior?.addEventListener(
         "click",
         () =>
-            cambiarDiaCalendario(-1)
+            cambiarDiaCalendario(
+                -1
+            )
     );
 
 
     siguiente?.addEventListener(
         "click",
         () =>
-            cambiarDiaCalendario(1)
+            cambiarDiaCalendario(
+                1
+            )
     );
 
 
@@ -3972,6 +4678,7 @@ function inicializarCalendario() {
 
     cargarFiltroDeportesCalendario();
 
+
     renderCalendario();
 
 }
@@ -3984,11 +4691,14 @@ function inicializarCalendario() {
 window.renderCalendario =
     renderCalendario;
 
+
 window.inicializarCalendario =
     inicializarCalendario;
 
+
 window.cambiarDiaCalendario =
     cambiarDiaCalendario;
+
 
 window.irACalendarioHoy =
     irACalendarioHoy;
