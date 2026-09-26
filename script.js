@@ -1049,720 +1049,7 @@ async function cargarUnidadesDisciplina(codigo) {
 
     return unidades;
 }
-// ============================================================
-// CALENDARIO
-// ============================================================
 
-let fechaCalendarioActual = new Date();
-
-
-// ------------------------------------------------------------
-// UTILIDADES
-// ------------------------------------------------------------
-
-function obtenerTodosLosEventosCalendario() {
-
-    return Object.values(
-        window.unidadesPorDisciplina || {}
-    )
-        .flat()
-        .filter(evento =>
-            evento &&
-            evento.clave &&
-            evento.fecha
-        );
-
-}
-
-
-function obtenerFechaEvento(evento) {
-
-    const fecha = new Date(evento.fecha);
-
-    if (Number.isNaN(fecha.getTime())) {
-        return null;
-    }
-
-    return fecha;
-
-}
-
-
-function mismaFecha(a, b) {
-
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-
-}
-
-
-function formatearHora(fecha) {
-
-    if (!fecha) {
-        return "--:--";
-    }
-
-    return fecha.toLocaleTimeString(
-        "es-AR",
-        {
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
-
-}
-
-
-function formatearFechaLarga(fecha) {
-
-    return fecha.toLocaleDateString(
-        "es-AR",
-        {
-            weekday: "long",
-            day: "numeric",
-            month: "long"
-        }
-    );
-
-}
-
-
-function formatearFechaCorta(fecha) {
-
-    return fecha.toLocaleDateString(
-        "es-AR",
-        {
-            day: "2-digit",
-            month: "2-digit"
-        }
-    );
-
-}
-
-
-// ------------------------------------------------------------
-// OBTENER EVENTOS DEL DÍA
-// ------------------------------------------------------------
-
-function obtenerEventosCalendarioDia(fecha) {
-
-    const todos =
-        obtenerTodosLosEventosCalendario();
-
-    return todos
-        .filter(evento => {
-
-            const fechaEvento =
-                obtenerFechaEvento(evento);
-
-            if (!fechaEvento) {
-                return false;
-            }
-
-            return mismaFecha(
-                fechaEvento,
-                fecha
-            );
-
-        })
-        .sort((a, b) => {
-
-            const fechaA =
-                obtenerFechaEvento(a);
-
-            const fechaB =
-                obtenerFechaEvento(b);
-
-            return fechaA - fechaB;
-
-        });
-
-}
-
-
-// ------------------------------------------------------------
-// OBTENER NOMBRE DEL DEPORTE
-// ------------------------------------------------------------
-
-function obtenerNombreDeporte(codigo) {
-
-    const disciplina =
-        (window.disciplinas || [])
-            .find(d => d.Key === codigo);
-
-    return (
-        disciplina?.Desc ||
-        codigo ||
-        "Deporte"
-    );
-
-}
-
-
-// ------------------------------------------------------------
-// ESTADO DEL EVENTO
-// ------------------------------------------------------------
-
-function obtenerEstadoCalendario(evento) {
-
-    if (evento.enVivo === true) {
-
-        return {
-            clase: "en-vivo",
-            texto: "🔴 EN VIVO"
-        };
-
-    }
-
-    if (
-        [
-            "OFFICIAL",
-            "UNOFFICIAL",
-            "PROVISIONAL"
-        ].includes(evento.estado)
-    ) {
-
-        return {
-            clase: "finalizado",
-            texto: "FINALIZADO"
-        };
-
-    }
-
-    return {
-        clase: "programado",
-        texto: "PROGRAMADO"
-    };
-
-}
-
-
-// ------------------------------------------------------------
-// CREAR TARJETA
-// ------------------------------------------------------------
-
-function crearTarjetaCalendario(evento) {
-
-    const tarjeta =
-        document.createElement("article");
-
-    tarjeta.className =
-        "calendario-evento";
-
-    const fecha =
-        obtenerFechaEvento(evento);
-
-    const estado =
-        obtenerEstadoCalendario(evento);
-
-    const deporte =
-        obtenerNombreDeporte(
-            evento.codigoDeporte
-        );
-
-
-    const participantes =
-        Array.isArray(evento.participantes)
-            ? evento.participantes
-            : [];
-
-
-    let participantesHTML = "";
-
-
-    if (participantes.length > 0) {
-
-        participantesHTML = `
-            <div class="calendario-participantes">
-
-                ${participantes
-                    .map(participante => `
-                        <div class="calendario-participante">
-
-                            <span>
-                                ${participante.nombre || "—"}
-                            </span>
-
-                            ${
-                                participante.pais
-                                    ? `
-                                        <small>
-                                            ${participante.pais}
-                                        </small>
-                                      `
-                                    : ""
-                            }
-
-                        </div>
-                    `)
-                    .join("")
-                }
-
-            </div>
-        `;
-
-    }
-
-
-    tarjeta.innerHTML = `
-
-        <div class="calendario-evento-hora">
-
-            <strong>
-                ${formatearHora(fecha)}
-            </strong>
-
-            <span class="calendario-estado ${estado.clase}">
-                ${estado.texto}
-            </span>
-
-        </div>
-
-
-        <div class="calendario-evento-contenido">
-
-            <div class="calendario-evento-deporte">
-                ${deporte}
-            </div>
-
-            <h3>
-                ${evento.eventoNombre || "Evento"}
-            </h3>
-
-            ${
-                evento.faseNombre
-                    ? `
-                        <p class="calendario-fase">
-                            ${evento.faseNombre}
-                        </p>
-                      `
-                    : ""
-            }
-
-            ${
-                evento.unidadNombre
-                    ? `
-                        <p class="calendario-unidad">
-                            ${evento.unidadNombre}
-                        </p>
-                      `
-                    : ""
-            }
-
-            ${participantesHTML}
-
-        </div>
-
-
-        <div class="calendario-evento-ubicacion">
-
-            ${
-                evento.sede
-                    ? `
-                        <span>
-                            🏟️ ${evento.sede}
-                        </span>
-                      `
-                    : ""
-            }
-
-            ${
-                evento.ubicacion
-                    ? `
-                        <span>
-                            📍 ${evento.ubicacion}
-                        </span>
-                      `
-                    : ""
-            }
-
-        </div>
-
-    `;
-
-
-    return tarjeta;
-
-}
-
-
-// ------------------------------------------------------------
-// FILTRO DE DEPORTES
-// ------------------------------------------------------------
-
-function cargarFiltroDeportesCalendario() {
-
-    const select =
-        document.getElementById(
-            "calendarioDeporte"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    const deportes =
-        new Map();
-
-
-    for (
-        const evento
-        of obtenerTodosLosEventosCalendario()
-    ) {
-
-        if (!evento.codigoDeporte) {
-            continue;
-        }
-
-        deportes.set(
-            evento.codigoDeporte,
-            obtenerNombreDeporte(
-                evento.codigoDeporte
-            )
-        );
-
-    }
-
-
-    select.innerHTML = `
-        <option value="TODOS">
-            Todos los deportes
-        </option>
-    `;
-
-
-    [...deportes.entries()]
-        .sort((a, b) =>
-            a[1].localeCompare(
-                b[1],
-                "es",
-                {
-                    sensitivity: "base"
-                }
-            )
-        )
-        .forEach(
-            ([codigo, nombre]) => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value = codigo;
-                option.textContent = nombre;
-
-                select.appendChild(option);
-
-            }
-        );
-
-}
-
-
-// ------------------------------------------------------------
-// RENDER DEL CALENDARIO
-// ------------------------------------------------------------
-
-function renderCalendario() {
-
-    const contenedor =
-        document.getElementById(
-            "calendarioEventos"
-        );
-
-    if (!contenedor) {
-        return;
-    }
-
-
-    let eventos =
-        obtenerEventosCalendarioDia(
-            fechaCalendarioActual
-        );
-
-
-    const filtro =
-        document.getElementById(
-            "calendarioDeporte"
-        )?.value || "TODOS";
-
-
-    if (filtro !== "TODOS") {
-
-        eventos =
-            eventos.filter(
-                evento =>
-                    evento.codigoDeporte === filtro
-            );
-
-    }
-
-
-    const fechaTexto =
-        document.getElementById(
-            "calendarioFechaTexto"
-        );
-
-    const fechaCompleta =
-        document.getElementById(
-            "calendarioFechaCompleta"
-        );
-
-
-    if (fechaTexto) {
-
-        fechaTexto.textContent =
-            formatearFechaCorta(
-                fechaCalendarioActual
-            );
-
-    }
-
-
-    if (fechaCompleta) {
-
-        fechaCompleta.textContent =
-            formatearFechaLarga(
-                fechaCalendarioActual
-            );
-
-    }
-
-
-    const contador =
-        document.getElementById(
-            "contadorCalendario"
-        );
-
-
-    if (contador) {
-
-        contador.textContent =
-            `${eventos.length} eventos`;
-
-    }
-
-
-    contenedor.innerHTML = "";
-
-
-    if (eventos.length === 0) {
-
-        contenedor.innerHTML = `
-
-            <div class="calendario-vacio">
-
-                <div class="calendario-vacio-icon">
-                    📅
-                </div>
-
-                <h3>
-                    No hay eventos
-                </h3>
-
-                <p>
-                    No hay competencias programadas
-                    para este día con este filtro.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    let deporteActual = null;
-    let grupo = null;
-
-
-    for (const evento of eventos) {
-
-        const deporte =
-            obtenerNombreDeporte(
-                evento.codigoDeporte
-            );
-
-
-        if (
-            deporteActual !==
-            evento.codigoDeporte
-        ) {
-
-            deporteActual =
-                evento.codigoDeporte;
-
-
-            grupo =
-                document.createElement(
-                    "section"
-                );
-
-            grupo.className =
-                "calendario-grupo";
-
-
-            grupo.innerHTML = `
-
-                <div class="calendario-grupo-header">
-
-                    <span>
-                        🏅
-                    </span>
-
-                    <h2>
-                        ${deporte}
-                    </h2>
-
-                </div>
-
-                <div class="calendario-grupo-eventos"></div>
-
-            `;
-
-
-            contenedor.appendChild(
-                grupo
-            );
-
-        }
-
-
-        const lista =
-            grupo.querySelector(
-                ".calendario-grupo-eventos"
-            );
-
-
-        lista.appendChild(
-            crearTarjetaCalendario(
-                evento
-            )
-        );
-
-    }
-
-}
-
-
-// ------------------------------------------------------------
-// CAMBIAR DÍA
-// ------------------------------------------------------------
-
-function cambiarDiaCalendario(cantidad) {
-
-    const nuevaFecha =
-        new Date(
-            fechaCalendarioActual
-        );
-
-    nuevaFecha.setDate(
-        nuevaFecha.getDate() + cantidad
-    );
-
-    fechaCalendarioActual =
-        nuevaFecha;
-
-    renderCalendario();
-
-}
-
-
-// ------------------------------------------------------------
-// IR A HOY
-// ------------------------------------------------------------
-
-function irACalendarioHoy() {
-
-    fechaCalendarioActual =
-        new Date();
-
-    renderCalendario();
-
-}
-
-
-// ------------------------------------------------------------
-// INICIALIZAR
-// ------------------------------------------------------------
-
-function inicializarCalendario() {
-
-    const anterior =
-        document.getElementById(
-            "calendarioAnterior"
-        );
-
-    const siguiente =
-        document.getElementById(
-            "calendarioSiguiente"
-        );
-
-    const hoy =
-        document.getElementById(
-            "calendarioHoy"
-        );
-
-    const deporte =
-        document.getElementById(
-            "calendarioDeporte"
-        );
-
-
-    anterior?.addEventListener(
-        "click",
-        () =>
-            cambiarDiaCalendario(-1)
-    );
-
-
-    siguiente?.addEventListener(
-        "click",
-        () =>
-            cambiarDiaCalendario(1)
-    );
-
-
-    hoy?.addEventListener(
-        "click",
-        irACalendarioHoy
-    );
-
-
-    deporte?.addEventListener(
-        "change",
-        renderCalendario
-    );
-
-
-    cargarFiltroDeportesCalendario();
-
-    renderCalendario();
-
-}
-
-
-// ------------------------------------------------------------
-// EXPONER
-// ------------------------------------------------------------
-
-window.renderCalendario =
-    renderCalendario;
-
-window.inicializarCalendario =
-    inicializarCalendario;
-
-window.cambiarDiaCalendario =
-    cambiarDiaCalendario;
-
-window.irACalendarioHoy =
-    irACalendarioHoy;
 // ========================================
 // CARGAR TODAS LAS UNIDADES
 // ========================================
@@ -3921,7 +3208,66 @@ if (btnPaises) {
         renderPaises();
     });
 }
+// ========================================
+// BOTÓN CALENDARIO
+// ========================================
 
+const btnCalendario =
+    document.getElementById("btnCalendario");
+
+if (btnCalendario) {
+
+    btnCalendario.addEventListener("click", () => {
+
+        seccionActual = "calendario";
+
+        // Ocultar todas las secciones
+        document.getElementById(
+            "seccionFavoritos"
+        ).hidden = true;
+
+        document.getElementById(
+            "seccionEquipos"
+        ).hidden = true;
+
+        document.getElementById(
+            "seccionIndividuales"
+        ).hidden = true;
+
+        document.getElementById(
+            "seccionPaises"
+        ).hidden = true;
+
+        document.getElementById(
+            "seccionLive"
+        ).hidden = true;
+
+        // Ocultar las secciones estáticas
+        document.querySelectorAll(
+            ".sport-section"
+        ).forEach(seccion => {
+            seccion.hidden = true;
+        });
+
+        // Mostrar calendario
+        document.getElementById(
+            "seccionCalendario"
+        ).hidden = false;
+
+        // Actualizar título
+        const titulo =
+            document.querySelector(".topbar h1");
+
+        if (titulo) {
+            titulo.textContent = "Calendario";
+        }
+
+        cargarFiltroDeportesCalendario();
+        renderCalendario();
+
+    });
+
+}
 // ========================================
 // BOTÓN JUEGOS SURAMERICANOS → INICIO
 // ========================================
@@ -3932,3 +3278,717 @@ document.getElementById(
     "click",
     mostrarPantallaPrincipal
 );
+// ============================================================
+// CALENDARIO
+// ============================================================
+
+let fechaCalendarioActual = new Date();
+
+
+// ------------------------------------------------------------
+// UTILIDADES
+// ------------------------------------------------------------
+
+function obtenerTodosLosEventosCalendario() {
+
+    return Object.values(
+        window.unidadesPorDisciplina || {}
+    )
+        .flat()
+        .filter(evento =>
+            evento &&
+            evento.clave &&
+            evento.fecha
+        );
+
+}
+
+
+function obtenerFechaEvento(evento) {
+
+    const fecha = new Date(evento.fecha);
+
+    if (Number.isNaN(fecha.getTime())) {
+        return null;
+    }
+
+    return fecha;
+
+}
+
+
+function mismaFecha(a, b) {
+
+    return (
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate()
+    );
+
+}
+
+
+function formatearHora(fecha) {
+
+    if (!fecha) {
+        return "--:--";
+    }
+
+    return fecha.toLocaleTimeString(
+        "es-AR",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+
+}
+
+
+function formatearFechaLarga(fecha) {
+
+    return fecha.toLocaleDateString(
+        "es-AR",
+        {
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+        }
+    );
+
+}
+
+
+function formatearFechaCorta(fecha) {
+
+    return fecha.toLocaleDateString(
+        "es-AR",
+        {
+            day: "2-digit",
+            month: "2-digit"
+        }
+    );
+
+}
+
+
+// ------------------------------------------------------------
+// OBTENER EVENTOS DEL DÍA
+// ------------------------------------------------------------
+
+function obtenerEventosCalendarioDia(fecha) {
+
+    const todos =
+        obtenerTodosLosEventosCalendario();
+
+    return todos
+        .filter(evento => {
+
+            const fechaEvento =
+                obtenerFechaEvento(evento);
+
+            if (!fechaEvento) {
+                return false;
+            }
+
+            return mismaFecha(
+                fechaEvento,
+                fecha
+            );
+
+        })
+        .sort((a, b) => {
+
+            const fechaA =
+                obtenerFechaEvento(a);
+
+            const fechaB =
+                obtenerFechaEvento(b);
+
+            return fechaA - fechaB;
+
+        });
+
+}
+
+
+// ------------------------------------------------------------
+// OBTENER NOMBRE DEL DEPORTE
+// ------------------------------------------------------------
+
+function obtenerNombreDeporte(codigo) {
+
+    const disciplina =
+        (window.disciplinas || [])
+            .find(d => d.Key === codigo);
+
+    return (
+        disciplina?.Desc ||
+        codigo ||
+        "Deporte"
+    );
+
+}
+
+
+// ------------------------------------------------------------
+// ESTADO DEL EVENTO
+// ------------------------------------------------------------
+
+function obtenerEstadoCalendario(evento) {
+
+    if (evento.enVivo === true) {
+
+        return {
+            clase: "en-vivo",
+            texto: "🔴 EN VIVO"
+        };
+
+    }
+
+    if (
+        [
+            "OFFICIAL",
+            "UNOFFICIAL",
+            "PROVISIONAL"
+        ].includes(evento.estado)
+    ) {
+
+        return {
+            clase: "finalizado",
+            texto: "FINALIZADO"
+        };
+
+    }
+
+    return {
+        clase: "programado",
+        texto: "PROGRAMADO"
+    };
+
+}
+
+
+// ------------------------------------------------------------
+// CREAR TARJETA
+// ------------------------------------------------------------
+
+function crearTarjetaCalendario(evento) {
+
+    const tarjeta =
+        document.createElement("article");
+
+    tarjeta.className =
+        "calendario-evento";
+
+    const fecha =
+        obtenerFechaEvento(evento);
+
+    const estado =
+        obtenerEstadoCalendario(evento);
+
+    const deporte =
+        obtenerNombreDeporte(
+            evento.codigoDeporte
+        );
+
+
+    const participantes =
+        Array.isArray(evento.participantes)
+            ? evento.participantes
+            : [];
+
+
+    let participantesHTML = "";
+
+
+    if (participantes.length > 0) {
+
+        participantesHTML = `
+            <div class="calendario-participantes">
+
+                ${participantes
+                    .map(participante => `
+                        <div class="calendario-participante">
+
+                            <span>
+                                ${participante.nombre || "—"}
+                            </span>
+
+                            ${
+                                participante.pais
+                                    ? `
+                                        <small>
+                                            ${participante.pais}
+                                        </small>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+                    `)
+                    .join("")
+                }
+
+            </div>
+        `;
+
+    }
+
+
+    tarjeta.innerHTML = `
+
+        <div class="calendario-evento-hora">
+
+            <strong>
+                ${formatearHora(fecha)}
+            </strong>
+
+            <span class="calendario-estado ${estado.clase}">
+                ${estado.texto}
+            </span>
+
+        </div>
+
+
+        <div class="calendario-evento-contenido">
+
+            <div class="calendario-evento-deporte">
+                ${deporte}
+            </div>
+
+            <h3>
+                ${evento.eventoNombre || "Evento"}
+            </h3>
+
+            ${
+                evento.faseNombre
+                    ? `
+                        <p class="calendario-fase">
+                            ${evento.faseNombre}
+                        </p>
+                      `
+                    : ""
+            }
+
+            ${
+                evento.unidadNombre
+                    ? `
+                        <p class="calendario-unidad">
+                            ${evento.unidadNombre}
+                        </p>
+                      `
+                    : ""
+            }
+
+            ${participantesHTML}
+
+        </div>
+
+
+        <div class="calendario-evento-ubicacion">
+
+            ${
+                evento.sede
+                    ? `
+                        <span>
+                            🏟️ ${evento.sede}
+                        </span>
+                      `
+                    : ""
+            }
+
+            ${
+                evento.ubicacion
+                    ? `
+                        <span>
+                            📍 ${evento.ubicacion}
+                        </span>
+                      `
+                    : ""
+            }
+
+        </div>
+
+    `;
+
+
+    return tarjeta;
+
+}
+
+
+// ------------------------------------------------------------
+// FILTRO DE DEPORTES
+// ------------------------------------------------------------
+
+function cargarFiltroDeportesCalendario() {
+
+    const select =
+        document.getElementById(
+            "calendarioDeporte"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const deportes =
+        new Map();
+
+
+    for (
+        const evento
+        of obtenerTodosLosEventosCalendario()
+    ) {
+
+        if (!evento.codigoDeporte) {
+            continue;
+        }
+
+        deportes.set(
+            evento.codigoDeporte,
+            obtenerNombreDeporte(
+                evento.codigoDeporte
+            )
+        );
+
+    }
+
+
+    select.innerHTML = `
+        <option value="TODOS">
+            Todos los deportes
+        </option>
+    `;
+
+
+    [...deportes.entries()]
+        .sort((a, b) =>
+            a[1].localeCompare(
+                b[1],
+                "es",
+                {
+                    sensitivity: "base"
+                }
+            )
+        )
+        .forEach(
+            ([codigo, nombre]) => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value = codigo;
+                option.textContent = nombre;
+
+                select.appendChild(option);
+
+            }
+        );
+
+}
+
+
+// ------------------------------------------------------------
+// RENDER DEL CALENDARIO
+// ------------------------------------------------------------
+
+function renderCalendario() {
+
+    const contenedor =
+        document.getElementById(
+            "calendarioEventos"
+        );
+
+    if (!contenedor) {
+        return;
+    }
+
+
+    let eventos =
+        obtenerEventosCalendarioDia(
+            fechaCalendarioActual
+        );
+
+
+    const filtro =
+        document.getElementById(
+            "calendarioDeporte"
+        )?.value || "TODOS";
+
+
+    if (filtro !== "TODOS") {
+
+        eventos =
+            eventos.filter(
+                evento =>
+                    evento.codigoDeporte === filtro
+            );
+
+    }
+
+
+    const fechaTexto =
+        document.getElementById(
+            "calendarioFechaTexto"
+        );
+
+    const fechaCompleta =
+        document.getElementById(
+            "calendarioFechaCompleta"
+        );
+
+
+    if (fechaTexto) {
+
+        fechaTexto.textContent =
+            formatearFechaCorta(
+                fechaCalendarioActual
+            );
+
+    }
+
+
+    if (fechaCompleta) {
+
+        fechaCompleta.textContent =
+            formatearFechaLarga(
+                fechaCalendarioActual
+            );
+
+    }
+
+
+    const contador =
+        document.getElementById(
+            "contadorCalendario"
+        );
+
+
+    if (contador) {
+
+        contador.textContent =
+            `${eventos.length} eventos`;
+
+    }
+
+
+    contenedor.innerHTML = "";
+
+
+    if (eventos.length === 0) {
+
+        contenedor.innerHTML = `
+
+            <div class="calendario-vacio">
+
+                <div class="calendario-vacio-icon">
+                    📅
+                </div>
+
+                <h3>
+                    No hay eventos
+                </h3>
+
+                <p>
+                    No hay competencias programadas
+                    para este día con este filtro.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    let deporteActual = null;
+    let grupo = null;
+
+
+    for (const evento of eventos) {
+
+        const deporte =
+            obtenerNombreDeporte(
+                evento.codigoDeporte
+            );
+
+
+        if (
+            deporteActual !==
+            evento.codigoDeporte
+        ) {
+
+            deporteActual =
+                evento.codigoDeporte;
+
+
+            grupo =
+                document.createElement(
+                    "section"
+                );
+
+            grupo.className =
+                "calendario-grupo";
+
+
+            grupo.innerHTML = `
+
+                <div class="calendario-grupo-header">
+
+                    <span>
+                        🏅
+                    </span>
+
+                    <h2>
+                        ${deporte}
+                    </h2>
+
+                </div>
+
+                <div class="calendario-grupo-eventos"></div>
+
+            `;
+
+
+            contenedor.appendChild(
+                grupo
+            );
+
+        }
+
+
+        const lista =
+            grupo.querySelector(
+                ".calendario-grupo-eventos"
+            );
+
+
+        lista.appendChild(
+            crearTarjetaCalendario(
+                evento
+            )
+        );
+
+    }
+
+}
+
+
+// ------------------------------------------------------------
+// CAMBIAR DÍA
+// ------------------------------------------------------------
+
+function cambiarDiaCalendario(cantidad) {
+
+    const nuevaFecha =
+        new Date(
+            fechaCalendarioActual
+        );
+
+    nuevaFecha.setDate(
+        nuevaFecha.getDate() + cantidad
+    );
+
+    fechaCalendarioActual =
+        nuevaFecha;
+
+    renderCalendario();
+
+}
+
+
+// ------------------------------------------------------------
+// IR A HOY
+// ------------------------------------------------------------
+
+function irACalendarioHoy() {
+
+    fechaCalendarioActual =
+        new Date();
+
+    renderCalendario();
+
+}
+
+
+// ------------------------------------------------------------
+// INICIALIZAR
+// ------------------------------------------------------------
+
+function inicializarCalendario() {
+
+    const anterior =
+        document.getElementById(
+            "calendarioAnterior"
+        );
+
+    const siguiente =
+        document.getElementById(
+            "calendarioSiguiente"
+        );
+
+    const hoy =
+        document.getElementById(
+            "calendarioHoy"
+        );
+
+    const deporte =
+        document.getElementById(
+            "calendarioDeporte"
+        );
+
+
+    anterior?.addEventListener(
+        "click",
+        () =>
+            cambiarDiaCalendario(-1)
+    );
+
+
+    siguiente?.addEventListener(
+        "click",
+        () =>
+            cambiarDiaCalendario(1)
+    );
+
+
+    hoy?.addEventListener(
+        "click",
+        irACalendarioHoy
+    );
+
+
+    deporte?.addEventListener(
+        "change",
+        renderCalendario
+    );
+
+
+    cargarFiltroDeportesCalendario();
+
+    renderCalendario();
+
+}
+
+
+// ------------------------------------------------------------
+// EXPONER
+// ------------------------------------------------------------
+
+window.renderCalendario =
+    renderCalendario;
+
+window.inicializarCalendario =
+    inicializarCalendario;
+
+window.cambiarDiaCalendario =
+    cambiarDiaCalendario;
+
+window.irACalendarioHoy =
+    irACalendarioHoy;
