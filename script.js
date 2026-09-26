@@ -3262,6 +3262,27 @@ if (btnCalendario) {
             titulo.textContent = "Calendario";
         }
 
+// ------------------------------------------------------------
+// OBTENER NOMBRE DEL DEPORTE
+// ------------------------------------------------------------
+
+function obtenerNombreDeporte(codigo) {
+
+    const disciplina =
+        (window.disciplinas || [])
+            .find(d => d.Key === codigo);
+
+    return (
+        disciplina?.Desc ||
+        codigo ||
+        "Deporte"
+    );
+}
+
+// También la dejamos disponible globalmente
+window.obtenerNombreDeporte =
+    obtenerNombreDeporte;
+
         cargarFiltroDeportesCalendario();
         renderCalendario();
 
