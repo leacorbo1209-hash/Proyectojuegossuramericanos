@@ -3101,53 +3101,87 @@ function renderFavoritos() {
 }
 
 // ========================================
-// NAVEGACIÓN A FAVORITOS
+// NAVEGACIÓN GENERAL
 // ========================================
+//
+// Todas las secciones pasan por una única función.
+// Esto evita que dos pantallas queden visibles al mismo tiempo.
+// Medallero no forma parte de la navegación.
+//
 
-function mostrarFavoritos() {
+const SECCIONES_NAVEGACION = [
+    "seccionFavoritos",
+    "seccionEquipos",
+    "seccionIndividuales",
+    "seccionPaises",
+    "seccionCalendario",
+    "seccionLive"
+];
 
-    seccionActual = "favoritos";
+function ocultarTodasLasSecciones() {
 
-    document.getElementById(
-        "seccionFavoritos"
-    ).hidden = false;
+    // Ocultar las secciones principales
+    for (const id of SECCIONES_NAVEGACION) {
 
-    document.getElementById(
-        "seccionLive"
-    ).hidden = true;
+        const seccion =
+            document.getElementById(id);
 
-    // Ocultar las secciones estáticas de ejemplo.
+        if (seccion) {
+            seccion.hidden = true;
+        }
+    }
+
+    // Ocultar las secciones dinámicas de deportes
     document.querySelectorAll(
         ".sport-section"
     ).forEach(seccion => {
         seccion.hidden = true;
     });
-
-    const titulo =
-        document.querySelector(".topbar h1");
-
-    if (titulo) {
-        titulo.textContent = "Mis favoritos";
-    }
-
-    renderFavoritos();
 }
 
+
 // ========================================
-// VOLVER A LA PANTALLA PRINCIPAL
+// MOSTRAR UNA SECCIÓN
+// ========================================
+
+function mostrarSeccion(id, titulo) {
+
+    // Primero limpiar absolutamente todo
+    ocultarTodasLasSecciones();
+
+    // Mostrar la sección solicitada
+    const seccion =
+        document.getElementById(id);
+
+    if (seccion) {
+        seccion.hidden = false;
+    }
+
+    // Actualizar estado global
+    seccionActual = id
+        .replace("seccion", "")
+        .toLowerCase();
+
+    // Actualizar título
+    const tituloElemento =
+        document.querySelector(".topbar h1");
+
+    if (tituloElemento && titulo) {
+        tituloElemento.textContent = titulo;
+    }
+}
+
+
+// ========================================
+// INICIO
 // ========================================
 
 function mostrarPantallaPrincipal() {
 
+    // Ocultar todas las secciones especiales
+    ocultarTodasLasSecciones();
+
     seccionActual = "inicio";
-
-    // Ocultar favoritos
-    const seccionFavoritos =
-        document.getElementById("seccionFavoritos");
-
-    if (seccionFavoritos) {
-        seccionFavoritos.hidden = true;
-    }
 
     // Mostrar LIVE
     const seccionLive =
@@ -3157,7 +3191,8 @@ function mostrarPantallaPrincipal() {
         seccionLive.hidden = false;
     }
 
-    // Mostrar las secciones principales
+    // En la pantalla principal sí queremos
+    // mostrar las secciones de deportes.
     document.querySelectorAll(
         ".sport-section"
     ).forEach(seccion => {
@@ -3172,167 +3207,177 @@ function mostrarPantallaPrincipal() {
         titulo.textContent = "Tus destacados";
     }
 }
+
+
 // ========================================
-// CONECTAR BOTÓN DEL MENÚ
+// FAVORITOS
 // ========================================
 
-document.getElementById(
-    "btnFavoritos"
-)?.addEventListener(
-    "click",
-    mostrarFavoritos
-);
+function mostrarFavoritos() {
+
+    mostrarSeccion(
+        "seccionFavoritos",
+        "Mis favoritos"
+    );
+
+    renderFavoritos();
+}
+
+
+// ========================================
+// INDIVIDUALES
+// ========================================
+
+function mostrarIndividuales() {
+
+    mostrarSeccion(
+        "seccionIndividuales",
+        "Individuales"
+    );
+
+    renderIndividuales();
+}
+
+
+// ========================================
+// EQUIPOS
+// ========================================
+
+function mostrarEquipos() {
+
+    mostrarSeccion(
+        "seccionEquipos",
+        "Equipos"
+    );
+
+    renderEquipos();
+}
+
+
+// ========================================
+// PAÍSES
+// ========================================
+
+function mostrarPaises() {
+
+    mostrarSeccion(
+        "seccionPaises",
+        "Países"
+    );
+
+    renderPaises();
+}
+
+
+// ========================================
+// CALENDARIO
+// ========================================
+
+function mostrarCalendario() {
+
+    mostrarSeccion(
+        "seccionCalendario",
+        "Calendario"
+    );
+
+    /*
+     * La primera vez se inicializa el calendario.
+     * Las siguientes veces simplemente se actualiza.
+     */
+
+    if (!window.calendarioInicializado) {
+
+        inicializarCalendario();
+
+        window.calendarioInicializado = true;
+
+    } else {
+
+        cargarFiltroDeportesCalendario();
+        renderCalendario();
+    }
+
+    // Actualizar nuevamente el contenido
+    // por si el calendario necesita refrescarse.
+    cargarFiltroDeportesCalendario();
+    renderCalendario();
+}
+
+
+// ========================================
+// CONECTAR BOTONES DEL MENÚ
+// ========================================
+
+const btnInicio =
+    document.getElementById("btnInicio");
+
+if (btnInicio) {
+
+    btnInicio.addEventListener(
+        "click",
+        mostrarPantallaPrincipal
+    );
+}
+
+
+const btnFavoritos =
+    document.getElementById("btnFavoritos");
+
+if (btnFavoritos) {
+
+    btnFavoritos.addEventListener(
+        "click",
+        mostrarFavoritos
+    );
+}
+
 
 const btnIndividuales =
     document.getElementById("btnIndividuales");
 
 if (btnIndividuales) {
 
-    btnIndividuales.addEventListener("click", () => {
-
-        seccionActual = "individuales";
-
-        document.getElementById("seccionFavoritos").hidden = true;
-        document.getElementById("seccionEquipos").hidden = true;
-        document.getElementById("seccionIndividuales").hidden = false;
-        document.getElementById("seccionLive").hidden = true;
-
-        renderIndividuales();
-    });
+    btnIndividuales.addEventListener(
+        "click",
+        mostrarIndividuales
+    );
 }
 
-const btnEquipos = document.getElementById("btnEquipos");
+
+const btnEquipos =
+    document.getElementById("btnEquipos");
 
 if (btnEquipos) {
 
-    btnEquipos.addEventListener("click", () => {
-
-        seccionActual = "equipos";
-
-        document.getElementById("seccionFavoritos").hidden = true;
-        document.getElementById("seccionEquipos").hidden = false;
-        document.getElementById("seccionLive").hidden = true;
-
-        renderEquipos();
-    });
+    btnEquipos.addEventListener(
+        "click",
+        mostrarEquipos
+    );
 }
+
 
 const btnPaises =
     document.getElementById("btnPaises");
 
 if (btnPaises) {
 
-    btnPaises.addEventListener("click", () => {
-
-        seccionActual = "paises";
-
-        document.getElementById("seccionFavoritos").hidden = true;
-        document.getElementById("seccionEquipos").hidden = true;
-        document.getElementById("seccionIndividuales").hidden = true;
-        document.getElementById("seccionPaises").hidden = false;
-        document.getElementById("seccionLive").hidden = true;
-
-        renderPaises();
-    });
+    btnPaises.addEventListener(
+        "click",
+        mostrarPaises
+    );
 }
-// ========================================
-// BOTÓN CALENDARIO
-// ========================================
+
 
 const btnCalendario =
     document.getElementById("btnCalendario");
 
 if (btnCalendario) {
 
-    btnCalendario.addEventListener("click", () => {
-
-        seccionActual = "calendario";
-
-        // Ocultar todas las secciones
-        document.getElementById(
-            "seccionFavoritos"
-        ).hidden = true;
-
-        document.getElementById(
-            "seccionEquipos"
-        ).hidden = true;
-
-        document.getElementById(
-            "seccionIndividuales"
-        ).hidden = true;
-
-        document.getElementById(
-            "seccionPaises"
-        ).hidden = true;
-
-        document.getElementById(
-            "seccionLive"
-        ).hidden = true;
-
-        // Ocultar las secciones estáticas
-        document.querySelectorAll(
-            ".sport-section"
-        ).forEach(seccion => {
-            seccion.hidden = true;
-        });
-
-        // Mostrar calendario
-        document.getElementById(
-            "seccionCalendario"
-        ).hidden = false;
-
-        // Actualizar título
-        const titulo =
-            document.querySelector(".topbar h1");
-
-        if (titulo) {
-            titulo.textContent = "Calendario";
-        }
-
-if (!window.calendarioInicializado) {
-    inicializarCalendario();
-    window.calendarioInicializado = true;
-} else {
-    cargarFiltroDeportesCalendario();
-    renderCalendario();
-}
-// ------------------------------------------------------------
-// OBTENER NOMBRE DEL DEPORTE
-// ------------------------------------------------------------
-
-function obtenerNombreDeporte(codigo) {
-
-    const disciplina =
-        (window.disciplinas || [])
-            .find(d => d.Key === codigo);
-
-    return (
-        disciplina?.Desc ||
-        codigo ||
-        "Deporte"
+    btnCalendario.addEventListener(
+        "click",
+        mostrarCalendario
     );
 }
-
-// También la dejamos disponible globalmente
-window.obtenerNombreDeporte =
-    obtenerNombreDeporte;
-
-        cargarFiltroDeportesCalendario();
-        renderCalendario();
-
-    });
-
-}
-// ========================================
-// BOTÓN JUEGOS SURAMERICANOS → INICIO
-// ========================================
-
-document.getElementById(
-    "btnInicio"
-)?.addEventListener(
-    "click",
-    mostrarPantallaPrincipal
-);
 // ========================================
 // CALENDARIO
 // ========================================
