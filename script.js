@@ -1,4 +1,31 @@
+// ============================================================
+// OBTENER NOMBRE DEL DEPORTE
+// ============================================================
 
+function obtenerNombreDeporte(codigo) {
+
+    const disciplinas =
+        window.disciplinas || [];
+
+    const disciplina =
+        disciplinas.find(
+            d =>
+                d.Key === codigo ||
+                d.Code === codigo ||
+                d.code === codigo
+        );
+
+    return (
+        disciplina?.Desc ||
+        disciplina?.Name ||
+        disciplina?.name ||
+        codigo ||
+        "Deporte"
+    );
+}
+
+window.obtenerNombreDeporte =
+    obtenerNombreDeporte;
 // ========================================
 // MODO CLARO / OSCURO
 // ========================================
