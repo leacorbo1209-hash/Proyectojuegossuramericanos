@@ -550,7 +550,6 @@ function agruparEventosPorFecha(eventos) {
     return mapa;
 }
 
-
 function crearBloqueFechas(eventos, volver) {
 
     const contenedor =
@@ -575,34 +574,55 @@ function crearBloqueFechas(eventos, volver) {
 
     for (const [fecha, eventosDelDia] of fechas) {
 
-        const bloqueFecha =
-            document.createElement("div");
+        const boton =
+            document.createElement("button");
 
-        bloqueFecha.className =
-            "carpeta-fecha";
+        boton.type = "button";
+        boton.className = "carpeta-item";
 
-        bloqueFecha.innerHTML = `
-            <span class="carpeta-fecha-texto">
-                ${formatearFecha(fecha)}
-            </span>
+        boton.innerHTML = `
+            <div class="carpeta-contenido">
+
+                <div class="carpeta-icono"></div>
+
+                <div class="carpeta-info">
+
+                    <span class="carpeta-nombre">
+                        ${formatearFecha(fecha)}
+                    </span>
+
+                    <span class="carpeta-descripcion">
+                        ${eventosDelDia.length} eventos
+                    </span>
+
+                </div>
+
+            </div>
 
             <span class="carpeta-flecha">›</span>
         `;
 
-        bloqueFecha.style.cursor = "pointer";
-
-        bloqueFecha.addEventListener(
+        boton.addEventListener(
             "click",
-            () => {
+            function () {
+
                 mostrarEventosDelDia(
                     contenedor,
                     eventosDelDia,
-                    () => crearBloqueFechas(eventos, volver)
+                    function () {
+
+                        crearBloqueFechas(
+                            eventos,
+                            volver
+                        );
+
+                    }
                 );
+
             }
         );
 
-        contenedor.appendChild(bloqueFecha);
+        contenedor.appendChild(boton);
     }
 
     return contenedor;
