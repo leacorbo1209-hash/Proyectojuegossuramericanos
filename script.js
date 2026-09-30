@@ -424,42 +424,276 @@ function obtenerEventosIndividuales() {
     return [...mapa.values()];
 }
 
-function renderIndividuales() {
+// ========================================
+// NAVEGACIÓN POR CARPETAS
+// EQUIPOS / INDIVIDUALES / PAÍSES
+// ========================================
 
-    const contenedor =
-        document.getElementById("eventosIndividuales");
+function crearBotonCarpeta(nombre, icono, descripcion, accion) {
 
-    if (!contenedor) {
-        console.error("❌ No existe #eventosIndividuales");
-        return;
+    const boton = document.createElement("button");
+
+    boton.type = "button";
+    boton.className = "carpeta-item";
+
+    boton.innerHTML = `
+        <div class="carpeta-contenido">
+            <div class="carpeta-icono">${icono}</div>
+
+            <div class="carpeta-info">
+                <span class="carpeta-nombre">${nombre}</span>
+                ${descripcion
+                    ? `<span class="carpeta-descripcion">${descripcion}</span>`
+                    : ""
+                }
+            </div>
+        </div>
+
+        <span class="carpeta-flecha">›</span>
+    `;
+
+    boton.addEventListener("click", accion);
+
+    return boton;
+}
+
+
+function crearBotonVolver(accion) {
+
+    const boton = document.createElement("button");
+
+    boton.type = "button";
+    boton.className = "carpeta-volver";
+
+    boton.innerHTML = `
+        <span>‹</span>
+        <span>Volver</span>
+    `;
+
+    boton.addEventListener("click", accion);
+
+    return boton;
+}
+
+
+function crearEncabezadoCarpeta(titulo, descripcion = "") {
+
+    const encabezado =
+        document.createElement("div");
+
+    encabezado.className =
+        "carpetas-encabezado";
+
+    encabezado.innerHTML = `
+        <div class="carpetas-encabezado-texto">
+            <h3>${titulo}</h3>
+            ${descripcion
+                ? `<p>${descripcion}</p>`
+                : ""
+            }
+        </div>
+    `;
+
+    return encabezado;
+}
+
+
+function obtenerFechaDia(fecha) {
+
+    if (!fecha) {
+        return "";
     }
 
-    const eventos = obtenerEventosIndividuales();
+    return fecha.slice(0, 10);
+}
 
-    contenedor.innerHTML = "";
 
-    const contador =
-        document.getElementById("contadorIndividuales");
+function formatearFecha(fecha) {
 
-    if (contador) {
-        contador.textContent =
-            `${eventos.length} eventos individuales`;
+    if (!fecha) {
+        return "Fecha no disponible";
     }
 
-    if (eventos.length === 0) {
-        contenedor.innerHTML = `
-            <p class="mensaje-vacio">
-                No hay eventos individuales para mostrar.
-            </p>
-        `;
-        return;
+    const fechaObj =
+        new Date(fecha);
+
+    if (Number.isNaN(fechaObj.getTime())) {
+        return fecha.slice(0, 10);
     }
 
-    const eventosPorDeporte = new Map();
+    return fechaObj.toLocaleDateString(
+        "es-AR",
+        {
+            day: "numeric",
+            month: "long"
+        }
+    );
+}
+
+
+function agruparEventosPorFecha(eventos) {
+
+    const mapa = new Map();
 
     for (const evento of eventos) {
 
-        const codigo = evento.codigoDeporte;
+        const fecha =
+            obtenerFechaDia(evento.fecha);
+
+        if (!mapa.has(fecha)) {
+            mapa.set(fecha, []);
+        }
+
+        mapa.get(fecha).push(evento);
+    }
+
+    return mapa;
+}
+
+
+function crearBloqueFechas(eventos, volver) {
+
+    const contenedor =
+        document.createElement("div");
+
+    contenedor.className =
+        "carpetas-navegacion";
+
+    contenedor.appendChild(
+        crearBotonVolver(volver)
+    );
+
+    const eventosPorFecha =
+        agruparEventosPorFecha(eventos);
+
+    const fechas =
+        [...eventosPorFecha.entries()]
+            .sort((a, b) =>
+                new Date(a[0] || 0) -
+                new Date(b[0] || 0)
+            );
+
+    for (const [fecha, eventosDelDia] of fechas) {
+
+        const bloqueFecha =
+            document.createElement("div");
+
+        bloqueFecha.className =
+            "carpeta-fecha";
+
+        bloqueFecha.innerHTML = `
+            <span class="carpeta-fecha-texto">
+                ${formatearFecha(fecha)}
+            </span>
+
+            <span class="carpeta-flecha">›</span>
+        `;
+
+        bloqueFecha.style.cursor = "pointer";
+
+        bloqueFecha.addEventListener(
+            "click",
+            () => {
+                mostrarEventosDelDia(
+                    contenedor,
+                    eventosDelDia,
+                    () => crearBloqueFechas(eventos, volver)
+                );
+            }
+        );
+
+        contenedor.appendChild(bloqueFecha);
+    }
+
+    return contenedor;
+}
+
+
+function mostrarEventosDelDia(
+    contenedor,
+    eventos,
+    volver
+) {
+
+    contenedor.innerHTML = "";
+
+    contenedor.appendChild(
+        crearBotonVolver(volver)
+    );
+
+    const eventosOrdenados =
+        [...eventos].sort((a, b) =>
+            new Date(a.fecha || 0) -
+            new Date(b.fecha || 0)
+        );
+
+    for (
+        let i = 0;
+        i < eventosOrdenados.length;
+        i++
+    ) {
+
+        const evento =
+            eventosOrdenados[i];
+
+        const bloque =
+            document.createElement("div");
+
+        bloque.className =
+            "carpeta-evento";
+
+        const nombreEvento =
+            evento.eventoNombre ||
+            evento.evento ||
+            evento.unidadNombre ||
+            `Evento ${i + 1}`;
+
+        bloque.innerHTML = `
+            <div class="carpeta-evento-header">
+                <h4 class="carpeta-evento-nombre">
+                    ${nombreEvento}
+                </h4>
+            </div>
+
+            <div class="carpeta-evento-contenido"></div>
+        `;
+
+        const contenido =
+            bloque.querySelector(
+                ".carpeta-evento-contenido"
+            );
+
+        const tarjeta =
+            crearTarjetaEventoLive(evento);
+
+        if (tarjeta) {
+            contenido.appendChild(tarjeta);
+        }
+
+        contenedor.appendChild(bloque);
+    }
+}
+
+
+function crearNavegacionDeportes(
+    contenedor,
+    eventos,
+    volver
+) {
+
+    contenedor.innerHTML = "";
+
+    contenedor.appendChild(
+        crearBotonVolver(volver)
+    );
+
+    const eventosPorDeporte =
+        new Map();
+
+    for (const evento of eventos) {
+
+        const codigo =
+            evento.codigoDeporte;
 
         if (!eventosPorDeporte.has(codigo)) {
             eventosPorDeporte.set(codigo, []);
@@ -472,7 +706,8 @@ function renderIndividuales() {
 
     for (const disciplina of disciplinas) {
 
-        const codigo = disciplina.Key;
+        const codigo =
+            disciplina.Key;
 
         if (!eventosPorDeporte.has(codigo)) {
             continue;
@@ -481,36 +716,148 @@ function renderIndividuales() {
         const eventosDelDeporte =
             eventosPorDeporte.get(codigo);
 
-        const seccion =
-            document.createElement("section");
+        const boton =
+            crearBotonCarpeta(
+                disciplina.Desc,
+                "",
+                `${eventosDelDeporte.length} eventos`,
+                () => {
 
-        seccion.className = "sport-section";
+                    contenedor.innerHTML = "";
 
-        seccion.innerHTML = `
-            <div class="section-title">
-                <span>🏃</span>
-                <h2>${disciplina.Desc}</h2>
-            </div>
+                    contenedor.appendChild(
+                        crearEncabezadoCarpeta(
+                            disciplina.Desc
+                        )
+                    );
 
-            <div class="events-grid"></div>
-        `;
+                    const fechas =
+                        crearBloqueFechas(
+                            eventosDelDeporte,
+                            () =>
+                                crearNavegacionDeportes(
+                                    contenedor,
+                                    eventos,
+                                    volver
+                                )
+                        );
 
-        const grid =
-            seccion.querySelector(".events-grid");
+                    while (fechas.firstChild) {
+                        contenedor.appendChild(
+                            fechas.firstChild
+                        );
+                    }
+                }
+            );
 
-        for (const evento of eventosDelDeporte) {
-
-            const tarjeta =
-                crearTarjetaEventoLive(evento);
-
-            if (tarjeta) {
-                grid.appendChild(tarjeta);
-            }
-        }
-
-        contenedor.appendChild(seccion);
+        contenedor.appendChild(boton);
     }
 }
+
+
+// ========================================
+// EVENTOS INDIVIDUALES
+// ========================================
+
+function obtenerEventosIndividuales() {
+
+    const todosLosEventos = [
+        ...eventosActuales,
+        ...eventosEnVivo
+    ];
+
+    const mapa = new Map();
+
+    for (const evento of todosLosEventos) {
+
+        if (!evento) {
+            continue;
+        }
+
+        if (
+            !esDisciplinaIndividual(
+                evento.codigoDeporte
+            )
+        ) {
+            continue;
+        }
+
+        const clave =
+            obtenerClaveFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            );
+
+        if (!clave) {
+            continue;
+        }
+
+        mapa.set(
+            clave,
+            {
+                ...evento,
+                participantes:
+                    Array.isArray(
+                        evento.participantes
+                    )
+                        ? evento.participantes
+                        : []
+            }
+        );
+    }
+
+    return [...mapa.values()];
+}
+
+
+function renderIndividuales() {
+
+    const contenedor =
+        document.getElementById(
+            "eventosIndividuales"
+        );
+
+    if (!contenedor) {
+        return;
+    }
+
+    const eventos =
+        obtenerEventosIndividuales();
+
+    contenedor.innerHTML = "";
+
+    const contador =
+        document.getElementById(
+            "contadorIndividuales"
+        );
+
+    if (contador) {
+        contador.textContent =
+            `${eventos.length} eventos individuales`;
+    }
+
+    if (eventos.length === 0) {
+
+        contenedor.innerHTML = `
+            <p class="mensaje-vacio">
+                No hay eventos individuales para mostrar.
+            </p>
+        `;
+
+        return;
+    }
+
+    crearNavegacionDeportes(
+        contenedor,
+        eventos,
+        () => renderIndividuales()
+    );
+}
+
+
+// ========================================
+// EVENTOS DE EQUIPOS
+// ========================================
 
 function obtenerEventosEquipos() {
 
@@ -523,55 +870,66 @@ function obtenerEventosEquipos() {
 
     for (const evento of todosLosEventos) {
 
-        if (!evento) continue;
-
-        if (!esDisciplinaDeEquipo(evento.codigoDeporte)) {
+        if (!evento) {
             continue;
         }
 
-        const clave = obtenerClaveFavorito(
-            evento.codigoDeporte,
-            evento.clave
+        if (
+            !esDisciplinaDeEquipo(
+                evento.codigoDeporte
+            )
+        ) {
+            continue;
+        }
+
+        const clave =
+            obtenerClaveFavorito(
+                evento.codigoDeporte,
+                evento.clave
+            );
+
+        if (!clave) {
+            continue;
+        }
+
+        mapa.set(
+            clave,
+            {
+                ...evento,
+                participantes:
+                    Array.isArray(
+                        evento.participantes
+                    )
+                        ? evento.participantes
+                        : []
+            }
         );
-
-        if (!clave) continue;
-
-        mapa.set(clave, {
-            ...evento,
-            participantes:
-                Array.isArray(evento.participantes)
-                    ? evento.participantes
-                    : []
-        });
     }
 
     return [...mapa.values()];
 }
 
-// ========================================
-// RENDER EQUIPOS
-// ========================================
-// NOTA: esta función antes tenía, pegadas en el medio de su
-// cuerpo, dos definiciones completas de funciones distintas
-// (obtenerMedallero y obtenerMedalleroCompleto) más una llamada
-// suelta a obtenerMedallero() con un console.table(). Nada de
-// eso tiene que ver con renderizar eventos de equipos, así que
-// se sacó todo. renderEquipos() ahora solo agrupa y dibuja las
-// tarjetas de los eventos de disciplinas de equipo.
+
 function renderEquipos() {
 
-    const contenedor = document.getElementById("eventosEquipos");
+    const contenedor =
+        document.getElementById(
+            "eventosEquipos"
+        );
 
     if (!contenedor) {
-        console.error("❌ No existe #eventosEquipos");
         return;
     }
 
-    const eventos = obtenerEventosEquipos();
+    const eventos =
+        obtenerEventosEquipos();
 
     contenedor.innerHTML = "";
 
-    const contador = document.getElementById("contadorEquipos");
+    const contador =
+        document.getElementById(
+            "contadorEquipos"
+        );
 
     if (contador) {
         contador.textContent =
@@ -579,69 +937,27 @@ function renderEquipos() {
     }
 
     if (eventos.length === 0) {
+
         contenedor.innerHTML = `
             <p class="mensaje-vacio">
                 No hay eventos de equipos para mostrar.
             </p>
         `;
+
         return;
     }
 
-    // Agrupar eventos por disciplina
-    const eventosPorDeporte = new Map();
-
-    for (const evento of eventos) {
-
-        const codigo = evento.codigoDeporte;
-
-        if (!eventosPorDeporte.has(codigo)) {
-            eventosPorDeporte.set(codigo, []);
-        }
-
-        eventosPorDeporte.get(codigo).push(evento);
-    }
-
-    // Recorrer las disciplinas en el orden oficial
-    for (const disciplina of disciplinas) {
-
-        const codigo = disciplina.Key;
-
-        if (!eventosPorDeporte.has(codigo)) {
-            continue;
-        }
-
-        const eventosDelDeporte =
-            eventosPorDeporte.get(codigo);
-
-        const seccion = document.createElement("section");
-
-        seccion.className = "sport-section";
-
-        seccion.innerHTML = `
-            <div class="section-title">
-                <span>🏟️</span>
-                <h2>${disciplina.Desc}</h2>
-            </div>
-
-            <div class="events-grid"></div>
-        `;
-
-        const grid =
-            seccion.querySelector(".events-grid");
-
-        for (const evento of eventosDelDeporte) {
-
-            const tarjeta =
-                crearTarjetaEventoLive(evento);
-
-            if (tarjeta) {
-                grid.appendChild(tarjeta);
-            }
-        }
-
-        contenedor.appendChild(seccion);
-    }
+    crearNavegacionDeportes(
+        contenedor,
+        eventos,
+        () => renderEquipos()
+    );
 }
+
+
+// ========================================
+// EVENTOS POR PAÍS
+// ========================================
 
 function obtenerEventosPaises() {
 
@@ -650,11 +966,14 @@ function obtenerEventosPaises() {
         ...eventosEnVivo
     ];
 
-    const paises = new Map();
+    const paises =
+        new Map();
 
     for (const evento of todosLosEventos) {
 
-        if (!evento) continue;
+        if (!evento) {
+            continue;
+        }
 
         const claveEvento =
             obtenerClaveFavorito(
@@ -662,54 +981,79 @@ function obtenerEventosPaises() {
                 evento.clave
             );
 
-        if (!claveEvento) continue;
+        if (!claveEvento) {
+            continue;
+        }
 
         const participantes =
-            Array.isArray(evento.participantes)
+            Array.isArray(
+                evento.participantes
+            )
                 ? evento.participantes
                 : [];
 
         for (const participante of participantes) {
 
-            const pais = participante.pais;
+            const pais =
+                participante.pais;
 
-            if (!pais) continue;
+            if (!pais) {
+                continue;
+            }
 
             if (!paises.has(pais)) {
-                paises.set(pais, new Map());
+                paises.set(
+                    pais,
+                    new Map()
+                );
             }
 
             paises
                 .get(pais)
-                .set(claveEvento, evento);
+                .set(
+                    claveEvento,
+                    evento
+                );
         }
     }
 
-    const resultado = new Map();
+    const resultado =
+        new Map();
 
-    for (const [pais, eventos] of paises) {
-        resultado.set(pais, [...eventos.values()]);
+    for (
+        const [pais, eventos] of paises
+    ) {
+
+        resultado.set(
+            pais,
+            [...eventos.values()]
+        );
     }
 
     return resultado;
 }
 
+
 function renderPaises() {
 
     const contenedor =
-        document.getElementById("eventosPaises");
+        document.getElementById(
+            "eventosPaises"
+        );
 
     if (!contenedor) {
-        console.error("❌ No existe #eventosPaises");
         return;
     }
 
-    const paises = obtenerEventosPaises();
+    const paises =
+        obtenerEventosPaises();
 
     contenedor.innerHTML = "";
 
     const contador =
-        document.getElementById("contadorPaises");
+        document.getElementById(
+            "contadorPaises"
+        );
 
     if (contador) {
         contador.textContent =
@@ -727,64 +1071,139 @@ function renderPaises() {
         return;
     }
 
-    /*
-     * Ordenar países alfabéticamente.
-     */
     const paisesOrdenados =
         [...paises.entries()]
             .sort((a, b) =>
                 a[0].localeCompare(
                     b[0],
                     "es",
-                    { sensitivity: "base" }
+                    {
+                        sensitivity: "base"
+                    }
                 )
             );
 
-    for (const [pais, eventos] of paisesOrdenados) {
+    const navegacion =
+        document.createElement("div");
 
-        const seccion =
-            document.createElement("section");
+    navegacion.className =
+        "carpetas-navegacion";
 
-        seccion.className = "sport-section";
+    for (
+        const [pais, eventos] of paisesOrdenados
+    ) {
 
-        seccion.innerHTML = `
-            <div class="section-title">
-                <span>🌎</span>
-                <h2>${pais}</h2>
-            </div>
+        const boton =
+            crearBotonCarpeta(
+                pais,
+                "",
+                `${eventos.length} eventos`,
+                () => {
 
-            <div class="events-grid"></div>
-        `;
+                    mostrarPais(
+                        contenedor,
+                        pais,
+                        eventos
+                    );
+                }
+            );
 
-        const grid =
-            seccion.querySelector(".events-grid");
-
-        /*
-         * Ordenar los eventos del país por fecha.
-         */
-        eventos.sort((a, b) => {
-
-            const fechaA =
-                new Date(a.fecha || 0).getTime();
-
-            const fechaB =
-                new Date(b.fecha || 0).getTime();
-
-            return fechaA - fechaB;
-        });
-
-        for (const evento of eventos) {
-
-            const tarjeta =
-                crearTarjetaEventoLive(evento);
-
-            if (tarjeta) {
-                grid.appendChild(tarjeta);
-            }
-        }
-
-        contenedor.appendChild(seccion);
+        navegacion.appendChild(boton);
     }
+
+    contenedor.appendChild(navegacion);
+}
+
+
+function mostrarPais(
+    contenedor,
+    pais,
+    eventos
+) {
+
+    contenedor.innerHTML = "";
+
+    contenedor.appendChild(
+        crearBotonVolver(
+            () => renderPaises()
+        )
+    );
+
+    contenedor.appendChild(
+        crearEncabezadoCarpeta(
+            pais
+        )
+    );
+
+    const navegacion =
+        document.createElement("div");
+
+    navegacion.className =
+        "carpetas-navegacion";
+
+    const individuales =
+        eventos.filter(evento =>
+            esDisciplinaIndividual(
+                evento.codigoDeporte
+            )
+        );
+
+    const equipos =
+        eventos.filter(evento =>
+            esDisciplinaDeEquipo(
+                evento.codigoDeporte
+            )
+        );
+
+    if (individuales.length > 0) {
+
+        navegacion.appendChild(
+            crearBotonCarpeta(
+                "Individuales",
+                "",
+                `${individuales.length} eventos`,
+                () => {
+
+                    crearNavegacionDeportes(
+                        navegacion,
+                        individuales,
+                        () => mostrarPais(
+                            contenedor,
+                            pais,
+                            eventos
+                        )
+                    );
+                }
+            )
+        );
+    }
+
+    if (equipos.length > 0) {
+
+        navegacion.appendChild(
+            crearBotonCarpeta(
+                "Equipos",
+                "",
+                `${equipos.length} eventos`,
+                () => {
+
+                    crearNavegacionDeportes(
+                        navegacion,
+                        equipos,
+                        () => mostrarPais(
+                            contenedor,
+                            pais,
+                            eventos
+                        )
+                    );
+                }
+            )
+        );
+    }
+
+    contenedor.appendChild(
+        navegacion
+    );
 }
 
 // ========================================
