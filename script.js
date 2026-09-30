@@ -608,7 +608,6 @@ function crearBloqueFechas(eventos, volver) {
     return contenedor;
 }
 
-
 function mostrarEventosDelDia(
     contenedor,
     eventos,
@@ -753,6 +752,7 @@ function mostrarEventosDelDia(
         contenedor.appendChild(bloque);
     }
 }
+
 function crearNavegacionDeportes(
     contenedor,
     eventos,
