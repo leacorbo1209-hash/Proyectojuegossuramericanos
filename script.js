@@ -830,21 +830,17 @@ function crearNavegacionDeportes(
                     );
 
                     const fechas =
-                        crearBloqueFechas(
-                            eventosDelDeporte,
-                            () =>
-                                crearNavegacionDeportes(
-                                    contenedor,
-                                    eventos,
-                                    volver
-                                )
-                        );
+    crearBloqueFechas(
+        eventosDelDeporte,
+        () =>
+            crearNavegacionDeportes(
+                contenedor,
+                eventos,
+                volver
+            )
+    );
 
-                    while (fechas.firstChild) {
-                        contenedor.appendChild(
-                            fechas.firstChild
-                        );
-                    }
+contenedor.appendChild(fechas);
                 }
             );
 
