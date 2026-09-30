@@ -609,14 +609,24 @@ function crearBloqueFechas(eventos, volver) {
                 mostrarEventosDelDia(
                     contenedor,
                     eventosDelDia,
-                    function () {
+                   function () {
 
-                        crearBloqueFechas(
-                            eventos,
-                            volver
-                        );
+    contenedor.innerHTML = "";
 
-                    }
+    contenedor.appendChild(
+        crearEncabezadoCarpeta(
+            disciplina.Desc
+        )
+    );
+
+    contenedor.appendChild(
+        crearBloqueFechas(
+            eventos,
+            volver
+        )
+    );
+
+}
                 );
 
             }
