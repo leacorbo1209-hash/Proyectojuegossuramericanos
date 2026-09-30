@@ -632,7 +632,7 @@ function crearBloqueFechas(eventos, volver) {
     return contenedor;
 }
 
-function mostrarEventosDelDia(
+async function mostrarEventosDelDia(
     contenedor,
     eventos,
     volver
@@ -656,8 +656,19 @@ function mostrarEventosDelDia(
         i++
     ) {
 
-        const evento =
-            eventosOrdenados[i];
+       let evento =
+    eventosOrdenados[i];
+
+const resultadoCalendario =
+    await cargarResultadoCalendario(
+        evento
+    );
+
+evento =
+    enriquecerEventoConResultadoCalendario(
+        evento,
+        resultadoCalendario
+    );
 
         const bloque =
             document.createElement("div");
