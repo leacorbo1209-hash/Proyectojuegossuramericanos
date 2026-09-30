@@ -1308,3 +1308,260 @@ button {
     }
 
 }
+
+
+/* ==========================================
+   CALENDARIO
+   ========================================== */
+
+.calendario-evento {
+    padding: 20px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+
+    color: var(--text);
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.calendario-evento:hover {
+    background: var(--surface-hover);
+    box-shadow: var(--shadow-hover);
+}
+
+
+/* Hora y estado */
+
+.calendario-evento-hora {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 18px;
+}
+
+.calendario-evento-hora strong {
+    color: var(--text);
+
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.calendario-estado {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.calendario-estado.finalizado {
+    color: var(--text-secondary);
+}
+
+.calendario-estado.en-vivo {
+    color: #ef4444;
+}
+
+.calendario-estado.programado {
+    color: var(--accent);
+}
+
+
+/* Contenido */
+
+.calendario-evento-contenido {
+    color: var(--text);
+}
+
+.calendario-evento-deporte {
+    margin-bottom: 6px;
+
+    color: var(--accent);
+
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.calendario-evento h3 {
+    color: var(--text);
+
+    font-size: 17px;
+    font-weight: 700;
+
+    margin-bottom: 6px;
+}
+
+.calendario-fase,
+.calendario-unidad {
+    color: var(--text-secondary);
+
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+
+/* Participantes */
+
+.calendario-participantes {
+    margin-top: 16px;
+
+    border-top: 1px solid var(--border);
+}
+
+.calendario-participante {
+    display: grid;
+
+    grid-template-columns: 1fr auto auto;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid var(--border);
+
+    color: var(--text);
+}
+
+.calendario-participante span {
+    color: var(--text);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.calendario-participante small {
+    color: var(--text-secondary);
+
+    font-size: 11px;
+}
+
+.calendario-participante-resultado {
+    color: var(--text);
+
+    font-size: 15px;
+}
+
+
+/* Resultado */
+
+.calendario-marcador {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: 14px;
+    padding: 12px;
+
+    background: var(--accent-light);
+
+    border-radius: var(--radius-small);
+
+    color: var(--text);
+}
+
+.calendario-marcador span {
+    color: var(--text-secondary);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.calendario-marcador strong {
+    color: var(--text);
+
+    font-size: 18px;
+    font-weight: 800;
+}
+
+
+/* Ubicación */
+
+.calendario-evento-ubicacion {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-top: 18px;
+    padding-top: 12px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-secondary);
+
+    font-size: 10px;
+}
+
+
+/* Grupos */
+
+.calendario-grupo {
+    margin-bottom: 35px;
+}
+
+.calendario-grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 15px;
+}
+
+.calendario-grupo-header span {
+    font-size: 20px;
+}
+
+.calendario-grupo-header h2 {
+    color: var(--text);
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.calendario-grupo-eventos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+
+/* Estado vacío */
+
+.calendario-vacio {
+    padding: 50px 20px;
+
+    text-align: center;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    color: var(--text);
+}
+
+.calendario-vacio-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.calendario-vacio h3 {
+    color: var(--text);
+
+    margin-bottom: 6px;
+}
+
+.calendario-vacio p {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+}
