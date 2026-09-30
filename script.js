@@ -2505,13 +2505,7 @@ function crearTarjetaEventoLive(evento) {
         "evento-live-deporte";
 
 
-    const indicador =
-        document.createElement("span");
-
-    indicador.className =
-        "evento-live-indicador";
-
-    indicador.textContent = "🔴 LIVE";
+    
 
 
     const deporte =
@@ -2521,9 +2515,7 @@ function crearTarjetaEventoLive(evento) {
         evento.deporte || evento.codigoDeporte;
 
 
-    izquierda.appendChild(indicador);
     izquierda.appendChild(deporte);
-
 
     // ========================================
     // FAVORITO
