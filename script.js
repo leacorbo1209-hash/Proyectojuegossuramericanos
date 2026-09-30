@@ -603,26 +603,20 @@ function crearBloqueFechas(eventos, volver) {
         `;
 
         boton.addEventListener(
-            "click",
+    "click",
+    function () {
+
+        mostrarEventosDelDia(
+            contenedor,
+            eventosDelDia,
             function () {
 
-                mostrarEventosDelDia(
-                    contenedor,
-                    eventosDelDia,
-                   function () {
+                contenedor.innerHTML = "";
 
-    contenedor.innerHTML = "";
-
-    contenedor.appendChild(
-        crearEncabezadoCarpeta(
-            disciplina.Desc
-        )
-    );
-
-    contenedor.appendChild(
-        crearBloqueFechas(
-            eventos,
-            volver
+                contenedor.appendChild(
+                    crearBloqueFechas(
+                        eventos,
+                        volver
         )
     );
 
