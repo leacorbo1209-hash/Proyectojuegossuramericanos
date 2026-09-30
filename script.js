@@ -663,18 +663,96 @@ function mostrarEventosDelDia(
                 ".carpeta-evento-contenido"
             );
 
-        const tarjeta =
-            crearTarjetaEventoLive(evento);
+        // PARTICIPANTES / RESULTADOS
+        const resultados =
+            document.createElement("div");
 
-        if (tarjeta) {
-            contenido.appendChild(tarjeta);
+        resultados.className =
+            "carpeta-resultados";
+
+        if (
+            Array.isArray(evento.participantes) &&
+            evento.participantes.length > 0
+        ) {
+
+            for (
+                const participante
+                of evento.participantes
+            ) {
+
+                const fila =
+                    document.createElement("div");
+
+                fila.className =
+                    "carpeta-resultado";
+
+                const nombre =
+                    document.createElement("span");
+
+                nombre.className =
+                    "carpeta-resultado-nombre";
+
+                nombre.textContent =
+                    participante.nombre ||
+                    "Participante";
+
+                const resultado =
+                    document.createElement("strong");
+
+                resultado.className =
+                    "carpeta-resultado-marca";
+
+                resultado.textContent =
+                    participante.resultado ?? "";
+
+                fila.appendChild(nombre);
+
+                if (
+                    participante.pais
+                ) {
+
+                    const pais =
+                        document.createElement("span");
+
+                    pais.textContent =
+                        participante.pais;
+
+                    pais.style.marginLeft =
+                        "auto";
+
+                    pais.style.marginRight =
+                        "15px";
+
+                    pais.style.color =
+                        "var(--text-secondary)";
+
+                    fila.appendChild(pais);
+                }
+
+                fila.appendChild(resultado);
+
+                resultados.appendChild(fila);
+            }
+
+        } else {
+
+            const vacio =
+                document.createElement("div");
+
+            vacio.className =
+                "carpetas-vacio";
+
+            vacio.textContent =
+                "No hay resultados disponibles.";
+
+            resultados.appendChild(vacio);
         }
+
+        contenido.appendChild(resultados);
 
         contenedor.appendChild(bloque);
     }
 }
-
-
 function crearNavegacionDeportes(
     contenedor,
     eventos,
